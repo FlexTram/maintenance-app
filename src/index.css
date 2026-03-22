@@ -189,6 +189,25 @@ label {
 }
 .step-seg.active { background: var(--accent); }
 
+/* Login page */
+.login-page  { min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.login-box   { width: 100%; max-width: 360px; text-align: center; }
+.login-hero  { width: 100%; border-radius: 16px; margin-bottom: 1.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+.login-btn   { font-size: 16px; padding: 13px; }
+.login-hint  { font-size: 12px; color: var(--text3); margin-top: 1rem; }
+
+/* Home page */
+.home-header    { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
+.home-greeting  { font-size: 20px; font-weight: 600; }
+.home-subtext   { font-size: 13px; color: var(--text2); }
+.btn-signout    { width: auto; padding: 6px 12px; font-size: 13px; color: var(--text2); }
+.home-scan-btn  { font-size: 16px; padding: 14px; margin-bottom: 1rem; }
+.home-actions   { margin-bottom: 1.5rem; }
+.record-row     { cursor: pointer; display: flex; align-items: center; gap: 12px; }
+.record-info    { flex: 1; }
+.record-name    { font-weight: 500; font-size: 14px; }
+.record-chevron { color: var(--text3); }
+
 /* Online/offline indicator */
 .sync-banner {
   font-size: 12px;

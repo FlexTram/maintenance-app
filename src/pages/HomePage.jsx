@@ -34,30 +34,22 @@ export default function HomePage() {
 
   return (
     <div className="page">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+      <div className="home-header">
         <div>
-          <div style={{ fontSize: 20, fontWeight: 600 }}>Hi, {firstName}</div>
-          <div style={{ fontSize: 13, color: 'var(--text2)' }}>{equipment.length} pieces of equipment</div>
+          <div className="home-greeting">Hi, {firstName}</div>
+          <div className="home-subtext">{equipment.length} pieces of equipment</div>
         </div>
-        <button onClick={signOut} style={{ width: 'auto', padding: '6px 12px', fontSize: 13, color: 'var(--text2)' }}>
-          Sign out
-        </button>
+        <button className="btn-signout" onClick={signOut}>Sign out</button>
       </div>
 
-      {/* Primary action */}
-      <button
-        className="primary"
-        style={{ fontSize: 16, padding: '14px', marginBottom: '1rem' }}
-        onClick={() => navigate('/scan')}
-      >
+      <button className="primary home-scan-btn" onClick={() => navigate('/scan')}>
         Scan QR Code
       </button>
 
-      <div className="stack" style={{ marginBottom: '1.5rem' }}>
+      <div className="stack home-actions">
         <button onClick={() => navigate('/records')}>View all records</button>
       </div>
 
-      {/* Recent equipment */}
       {recent.length > 0 && (
         <>
           <div className="section-label">Recently serviced</div>
@@ -65,17 +57,16 @@ export default function HomePage() {
             {recent.map(({ eq, lastRecord }) => (
               <div
                 key={eq.id}
-                className="record"
-                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}
+                className="record record-row"
                 onClick={() => navigate(`/equipment/${eq.id}`)}
               >
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 500, fontSize: 14 }}>{eq.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text2)' }}>
+                <div className="record-info">
+                  <div className="record-name">{eq.name}</div>
+                  <div className="record-meta">
                     {eq.qr_id} · {new Date(lastRecord.service_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </div>
                 </div>
-                <span style={{ color: 'var(--text3)' }}>›</span>
+                <span className="record-chevron">›</span>
               </div>
             ))}
           </div>
