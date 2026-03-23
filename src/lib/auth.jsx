@@ -17,9 +17,9 @@ export function AuthProvider({ children }) {
     })
 
     // Listen for auth state changes (sign in / sign out)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
-      if (event === 'SIGNED_IN') onSignIn()
+      if (session?.user) onSignIn()
     })
 
     return () => subscription.unsubscribe()

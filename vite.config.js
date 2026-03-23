@@ -3,9 +3,6 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  server: {
-    host: true,
-  },
   plugins: [
     react(),
     VitePWA({
@@ -29,7 +26,6 @@ export default defineConfig({
       workbox: {
         // Cache the app shell and all assets
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB limit
         // Cache Supabase API responses for offline reading
         runtimeCaching: [
           {
