@@ -29,7 +29,7 @@ export default function RecordsPage() {
 
       {/* Filter tabs */}
       <div style={{ display: 'flex', gap: 6, marginBottom: '1rem', flexWrap: 'wrap' }}>
-        {['all', 'pass', 'fail', 'pending'].map(f => (
+        {['all', 'in_service', 'out_of_service', 'pending'].map(f => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -42,7 +42,7 @@ export default function RecordsPage() {
               borderColor: filter === f ? 'var(--accent)' : 'var(--border)',
             }}
           >
-            {f.charAt(0).toUpperCase() + f.slice(1)}
+            {f === 'all' ? 'All' : f === 'in_service' ? 'In service' : f === 'out_of_service' ? 'Out of service' : 'Pending'}
           </button>
         ))}
       </div>
@@ -70,7 +70,7 @@ export default function RecordsPage() {
                 {eq?.name || 'Unknown equipment'}
               </span>
               <span className={`badge badge-${r.status}`}>
-                {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
+                {r.status === 'in_service' ? 'In service' : r.status === 'out_of_service' ? 'Out of service' : 'Pending'}
               </span>
             </div>
             <div className="record-meta">

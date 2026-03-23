@@ -16,7 +16,7 @@ export default function NewRecordPage() {
   // Form state
   const [tech,   setTech]   = useState(user?.user_metadata?.full_name || '')
   const [date,   setDate]   = useState(new Date().toISOString().split('T')[0])
-  const [status, setStatus] = useState('pass')
+  const [status, setStatus] = useState('in_service')
   const [notes,  setNotes]  = useState('')
   const [parts,  setParts]  = useState([])
   const [partInput, setPartInput] = useState('')
@@ -82,8 +82,8 @@ export default function NewRecordPage() {
             <div className="field" style={{ marginBottom: 0 }}>
               <label>Status</label>
               <select value={status} onChange={e => setStatus(e.target.value)}>
-                <option value="pass">Pass — equipment is operational</option>
-                <option value="fail">Fail — equipment needs attention</option>
+                <option value="in_service">In service — equipment is operational</option>
+                <option value="out_of_service">Out of service — equipment needs attention</option>
                 <option value="pending">Pending — follow-up required</option>
               </select>
             </div>
