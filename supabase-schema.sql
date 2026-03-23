@@ -26,7 +26,7 @@ create table if not exists maintenance_records (
   equipment_id    uuid references equipment(id) on delete cascade,
   technician_name text not null,
   service_date    date not null,
-  status          text not null check (status in ('pass', 'fail', 'pending')),
+  status          text not null check (status in ('in_service', 'out_of_service', 'pending')),
   inspection_notes text,
   parts_replaced  text[],                  -- array of part names/numbers
   synced_at       timestamptz default now(),
