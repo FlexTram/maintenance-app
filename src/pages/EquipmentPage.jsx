@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
 import { getRecordsForEquipment } from '../lib/sync'
+import { StatusBadge } from './HomePage'
 
 export default function EquipmentPage() {
   const { id }     = useParams()
@@ -94,7 +95,4 @@ function RecordCard({ record: r }) {
   )
 }
 
-function StatusBadge({ status }) {
-  const map = { pass: 'Pass', fail: 'Fail', pending: 'Pending' }
-  return <span className={`badge badge-${status}`}>{map[status] || status}</span>
-}
+
