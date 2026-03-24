@@ -69,8 +69,8 @@ export default function RecordsPage() {
               <span style={{ fontWeight: 500, fontSize: 14 }}>
                 {eq?.name || 'Unknown equipment'}
               </span>
-              <span className={`badge badge-${r.status}`}>
-                {r.status === 'in_service' ? 'In service' : r.status === 'out_of_service' ? 'Out of service' : 'Pending'}
+              <span className={`badge badge-${r.status === 'pass' ? 'in_service' : r.status === 'fail' ? 'out_of_service' : r.status}`}>
+                {r.status === 'in_service' || r.status === 'pass' ? 'In service' : r.status === 'out_of_service' || r.status === 'fail' ? 'Out of service' : 'Pending'}
               </span>
             </div>
             <div className="record-meta">
