@@ -1,22 +1,35 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
-import { getRecordsForEquipment } from '../lib/sync'
+import { getRecordsForEquipment, getDocumentsForEquipment } from '../lib/sync'
 import { StatusBadge } from './HomePage'
+
+const SUBCATEGORY_LABELS = {
+  model_sb_standard: 'Model SB Standard',
+  receiving:         'Receiving',
+  on_site:           'On-Site',
+  shipping:          'Shipping',
+  tram_rodeo:        'Tram Rodeo',
+}
 
 export default function EquipmentPage() {
   const { id }     = useParams()
   const navigate   = useNavigate()
   const [eq,       setEq]      = useState(null)
   const [records,  setRecords] = useState([])
+  const [docs,     setDocs]    = useState([])
   const [loading,  setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
       const equipment = await db.equipment.get(id)
-      const recs      = await getRecordsForEquipment(id)
+      const [recs, documents] = await Promise.all([
+        getRecordsForEquipment(id),
+        getDocumentsForEquipment(id),
+      ])
       setEq(equipment)
       setRecords(recs)
+      setDocs(documents)
       setLoading(false)
     }
     load()
@@ -54,6 +67,43 @@ export default function EquipmentPage() {
       >
         + New Maintenance Record
       </button>
+
+      {/* Documents */}
+      {['technical_drawing', 'service_procedure'].map(category => {
+        const categoryDocs = docs.filter(d => d.category === category)
+        if (categoryDocs.length === 0) return null
+        const label = category === 'technical_drawing' ? 'Technical Drawings' : 'Service Procedures'
+        const bySubcategory = categoryDocs.reduce((acc, d) => {
+          const key = d.subcategory || 'other'
+          if (!acc[key]) acc[key] = []
+          acc[key].push(d)
+          return acc
+        }, {})
+        return (
+          <div key={category} style={{ marginBottom: '1.5rem' }}>
+            <div className="section-label">{label}</div>
+            {Object.entries(bySubcategory).map(([sub, subDocs]) => (
+              <div key={sub} className="card" style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                  {SUBCATEGORY_LABELS[sub] || sub}
+                </div>
+                {subDocs.map(doc => (
+                  <a
+                    key={doc.id}
+                    href={doc.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '0.5px solid var(--border)', textDecoration: 'none', color: 'var(--text1)' }}
+                  >
+                    <span style={{ fontSize: 14 }}>{doc.title}</span>
+                    <span style={{ fontSize: 13, color: 'var(--accent)' }}>Open →</span>
+                  </a>
+                ))}
+              </div>
+            ))}
+          </div>
+        )
+      })}
 
       {/* History */}
       <div className="section-label">Maintenance history</div>
