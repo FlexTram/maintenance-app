@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { getAllRecords, getAllEquipment } from '../lib/sync'
 
 export default function RecordsPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [records,   setRecords]   = useState([])
   const [equipment, setEquipment] = useState({})
-  const [filter,    setFilter]    = useState('all')
+  const [filter,    setFilter]    = useState(searchParams.get('filter') || 'all')
   const [loading,   setLoading]   = useState(true)
 
   useEffect(() => {
