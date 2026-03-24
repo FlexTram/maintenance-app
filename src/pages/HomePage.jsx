@@ -68,6 +68,7 @@ export default function HomePage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
           <div className="stat-card in-service"
+            onClick={() => navigate('/records?filter=in_service')}
             onPointerDown={e => e.currentTarget.classList.add('active')}
             onPointerUp={e => e.currentTarget.classList.remove('active')}
             onPointerLeave={e => e.currentTarget.classList.remove('active')}
@@ -76,6 +77,7 @@ export default function HomePage() {
             <div style={{ fontSize: 26, fontWeight: 600, color: '#4ade80' }}>{stats.inService}</div>
           </div>
           <div className="stat-card out-of-service"
+            onClick={() => navigate('/records?filter=out_of_service')}
             onPointerDown={e => e.currentTarget.classList.add('active')}
             onPointerUp={e => e.currentTarget.classList.remove('active')}
             onPointerLeave={e => e.currentTarget.classList.remove('active')}
