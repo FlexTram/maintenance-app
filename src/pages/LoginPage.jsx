@@ -10,6 +10,7 @@ export default function LoginPage() {
   return (
     <div className="login-page">
       <div className="login-box">
+        <img src="/flextram.jpg" alt="Flextram - Can You Maintain?" className="login-hero" />
         <button className="login-btn" onClick={signInWithGoogle}>
           Continue with Google
         </button>
