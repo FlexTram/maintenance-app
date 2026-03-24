@@ -64,6 +64,48 @@ create policy "Users can update their own records"
   on maintenance_records for update
   using (created_by = auth.uid());
 
+-- ── Documents table ──────────────────────────────────────────
+-- Stores links to technical docs, service procedures, and fleet-wide references.
+-- equipment_id is NULL for global/fleet-wide documents.
+
+create table if not exists documents (
+  id           uuid primary key default gen_random_uuid(),
+  equipment_id uuid references equipment(id) on delete cascade,
+  title        text not null,
+  url          text not null,
+  category     text not null check (category in (
+                 'technical_drawing',
+                 'service_procedure',
+                 'approved_tow_vehicles',
+                 'master_ops_doc'
+               )),
+  subcategory  text check (subcategory in (
+                 'model_sb_standard',
+                 'receiving',
+                 'on_site',
+                 'shipping',
+                 'tram_rodeo'
+               )),
+  created_at   timestamptz default now()
+);
+
+create index if not exists idx_documents_equipment on documents(equipment_id);
+create index if not exists idx_documents_category  on documents(category);
+
+alter table documents enable row level security;
+
+create policy "Authenticated users can view documents"
+  on documents for select
+  using (auth.role() = 'authenticated');
+
+create policy "Authenticated users can insert documents"
+  on documents for insert
+  with check (auth.role() = 'authenticated');
+
+create policy "Authenticated users can delete documents"
+  on documents for delete
+  using (auth.role() = 'authenticated');
+
 -- ── Sample equipment data ─────────────────────────────────────
 -- Remove or replace with your real equipment list.
 
