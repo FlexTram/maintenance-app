@@ -69,7 +69,7 @@ export default function HomePage() {
         <img
           src="/heavy_repairs_homepage.png"
           alt="Heavy Repairs"
-          style={{ width: '100%', borderRadius: 10, marginBottom: 10, display: 'block' }}
+          style={{ width: '100%', borderRadius: 10, marginBottom: 10, display: 'block', paddingTop: 5, paddingBottom: 5 }}
         />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
