@@ -39,10 +39,13 @@ export default function HomePage() {
       setRecent(recentEquip)
     }
     load()
-    supabase.from('documents').select('*').is('equipment_id', null).then(({ data }) => {
-      if (data) setGlobalDocs(data)
-    })
-  }, [])
+    if (user) {
+      supabase.from('documents').select('*').is('equipment_id', null).then(({ data, error }) => {
+        if (error) console.error('docs fetch error:', error)
+        if (data) setGlobalDocs(data)
+      })
+    }
+  }, [user])
 
   const firstName = user?.user_metadata?.full_name?.split(' ')[0] || 'there'
 
