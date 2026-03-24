@@ -124,9 +124,9 @@ export default function HomePage() {
                 href={doc.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ background: 'transparent', color: '#94a3b8', border: '0.5px solid #1e293b', borderRadius: 10, padding: '9px 10px', fontSize: 12, fontWeight: 500, cursor: 'pointer', textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1.3 }}
+                style={{ background: 'transparent', color: '#f59e0b', border: '1px solid #f59e0b', borderRadius: 10, padding: '9px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, lineHeight: 1.3 }}
               >
-                {doc.title}
+                📄 {doc.title}
               </a>
             ))}
           </div>
