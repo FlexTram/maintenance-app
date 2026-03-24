@@ -66,6 +66,12 @@ export default function HomePage() {
           <div style={{ fontSize: 13, color: '#475569' }}>Here's your equipment overview</div>
         </div>
 
+        <img
+          src="/heavy_repairs_homepage.png"
+          alt="Heavy Repairs"
+          style={{ width: '100%', borderRadius: 10, marginBottom: 10, display: 'block' }}
+        />
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
           <div className="stat-card in-service"
             onClick={() => navigate('/records?filter=in_service')}
