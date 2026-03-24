@@ -67,11 +67,19 @@ export default function HomePage() {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-          <div style={{ background: '#0f172a', border: '0.5px solid #1e293b', borderRadius: 10, padding: 12 }}>
+          <div className="stat-card in-service"
+            onPointerDown={e => e.currentTarget.classList.add('active')}
+            onPointerUp={e => e.currentTarget.classList.remove('active')}
+            onPointerLeave={e => e.currentTarget.classList.remove('active')}
+          >
             <div style={{ fontSize: 11, color: '#475569', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>In service</div>
             <div style={{ fontSize: 26, fontWeight: 600, color: '#4ade80' }}>{stats.inService}</div>
           </div>
-          <div style={{ background: '#0f172a', border: '0.5px solid #1e293b', borderRadius: 10, padding: 12 }}>
+          <div className="stat-card out-of-service"
+            onPointerDown={e => e.currentTarget.classList.add('active')}
+            onPointerUp={e => e.currentTarget.classList.remove('active')}
+            onPointerLeave={e => e.currentTarget.classList.remove('active')}
+          >
             <div style={{ fontSize: 11, color: '#475569', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Out of service</div>
             <div style={{ fontSize: 26, fontWeight: 600, color: '#f87171' }}>{stats.outOfService}</div>
           </div>
