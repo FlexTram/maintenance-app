@@ -106,9 +106,16 @@ export default function HomePage() {
 
         <button
           onClick={() => navigate('/records')}
-          style={{ width: '100%', background: 'transparent', color: '#94a3b8', border: '0.5px solid #1e293b', borderRadius: 10, padding: 11, fontSize: 14, marginBottom: 20, cursor: 'pointer' }}
+          style={{ width: '100%', background: 'transparent', color: '#94a3b8', border: '0.5px solid #1e293b', borderRadius: 10, padding: 11, fontSize: 14, marginBottom: 8, cursor: 'pointer' }}
         >
           View all records
+        </button>
+
+        <button
+          onClick={() => navigate('/docs')}
+          style={{ width: '100%', background: 'transparent', color: '#94a3b8', border: '0.5px solid #1e293b', borderRadius: 10, padding: 11, fontSize: 14, marginBottom: 20, cursor: 'pointer' }}
+        >
+          Reference Docs
         </button>
 
         {recent.length > 0 && (

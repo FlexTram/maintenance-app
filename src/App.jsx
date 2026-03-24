@@ -9,6 +9,7 @@ import ScanPage     from './pages/ScanPage'
 import EquipmentPage from './pages/EquipmentPage'
 import NewRecordPage from './pages/NewRecordPage'
 import RecordsPage  from './pages/RecordsPage'
+import DocsPage     from './pages/DocsPage'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="/equipment/:id" element={<ProtectedRoute><EquipmentPage /></ProtectedRoute>} />
         <Route path="/equipment/:id/new" element={<ProtectedRoute><NewRecordPage /></ProtectedRoute>} />
         <Route path="/records" element={<ProtectedRoute><RecordsPage /></ProtectedRoute>} />
+        <Route path="/docs"    element={<ProtectedRoute><DocsPage /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

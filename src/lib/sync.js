@@ -148,6 +148,32 @@ export async function syncRecordsFromSupabase() {
   }
 }
 
+// ── Documents ─────────────────────────────────────────────────
+
+/**
+ * Fetch documents for a specific piece of equipment (technical drawings + service procedures).
+ */
+export async function getDocumentsForEquipment(equipmentId) {
+  const { data, error } = await supabase
+    .from('documents')
+    .select('*')
+    .eq('equipment_id', equipmentId)
+    .order('category')
+  return error ? [] : data
+}
+
+/**
+ * Fetch fleet-wide global documents (approved tow vehicles + master ops doc).
+ */
+export async function getGlobalDocuments() {
+  const { data, error } = await supabase
+    .from('documents')
+    .select('*')
+    .is('equipment_id', null)
+    .order('category')
+  return error ? [] : data
+}
+
 // ── Connectivity listeners ────────────────────────────────────
 // Automatically flush the queue whenever the device comes back online.
 
