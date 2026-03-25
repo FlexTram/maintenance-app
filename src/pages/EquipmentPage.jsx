@@ -100,10 +100,28 @@ export default function EquipmentPage() {
         {!showStatusPanel ? (
           <button
             onClick={() => { setShowStatusPanel(true); setSelectedStatus(eq.status || 'in_service') }}
-            style={{ width: '100%', background: 'transparent', border: '0.5px solid #1e293b', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#94a3b8', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+            style={{
+              width: '100%',
+              borderRadius: 10,
+              padding: '11px 14px',
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: 'pointer',
+              textAlign: 'left',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              letterSpacing: '0.02em',
+              border: 'none',
+              ...(eq.status === 'out_of_service'
+                ? { background: '#450a0a', color: '#f87171' }
+                : eq.status === 'pending'
+                ? { background: '#431407', color: '#fb923c' }
+                : { background: '#052e16', color: '#4ade80' })
+            }}
           >
             <span>Change Status</span>
-            <span style={{ fontSize: 11 }}>▾</span>
+            <span style={{ fontSize: 12 }}>▾</span>
           </button>
         ) : (
           <div style={{ background: '#0f172a', border: '0.5px solid #1e293b', borderRadius: 12, padding: 14 }}>
@@ -140,7 +158,7 @@ export default function EquipmentPage() {
               <button
                 onClick={handleStatusSave}
                 disabled={!selectedStatus || !statusNote.trim() || savingStatus}
-                style={{ flex: 2, fontSize: 13, padding: '9px', background: !selectedStatus || !statusNote.trim() ? '#1e293b' : '#f59e0b', color: !selectedStatus || !statusNote.trim() ? '#475569' : '#0a0f1a', border: 'none', fontWeight: 600, cursor: !selectedStatus || !statusNote.trim() ? 'default' : 'pointer' }}
+                style={{ flex: 2, fontSize: 14, padding: '11px', fontWeight: 700, border: 'none', borderRadius: 8, background: !selectedStatus || !statusNote.trim() ? '#1e293b' : '#f59e0b', color: !selectedStatus || !statusNote.trim() ? '#475569' : '#0a0f1a', cursor: !selectedStatus || !statusNote.trim() ? 'default' : 'pointer', letterSpacing: '0.02em' }}
               >
                 {savingStatus ? 'Saving…' : 'Save Status'}
               </button>
