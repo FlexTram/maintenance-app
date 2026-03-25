@@ -46,6 +46,13 @@ Push to `master` → Vercel auto-deploys. Or manually:
 vercel --prod --yes
 ```
 
+## Infrastructure Notes
+- **Supabase free tier** pauses projects after 1 week of inactivity (cold start ~20-30s). Known issue.
+- **PGRST002 PostgREST bug** — ongoing outage on project `lpsumqpbvhphtodffmeo`. Support ticket filed.
+- **Backup plan**: When ready for production, upgrade to Supabase Pro ($25/mo) — same code, no migration, no pausing, fixes PostgREST instability. Alternatives: Neon (serverless Postgres, fast cold starts, free), Firebase (requires auth + db rewrite).
+- **Local IndexedDB cache** means the app works offline for equipment records/service history. Supabase outages only affect login, documents, and cloud sync.
+- **Development workflow**: All development done locally at `http://localhost:5173`. Push to `master` for Vercel auto-deploy only when ready to ship a feature.
+
 ## Pending Supabase Actions
 When PostgREST outage is resolved, verify/confirm:
 - **Documents table** has `category` column with values: `technical_drawing`, `service_procedure`, `approved_tow_vehicles`, `master_ops_doc`
