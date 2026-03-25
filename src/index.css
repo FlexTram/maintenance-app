@@ -114,8 +114,6 @@ label {
   border-radius: 999px;
   letter-spacing: 0.02em;
 }
-.badge-pass    { background: var(--pass-bg); color: var(--pass-text); }
-.badge-fail    { background: var(--fail-bg); color: var(--fail-text); }
 .badge-pending { background: var(--pend-bg); color: var(--pend-text); }
 .badge-offline { background: var(--bg3); color: var(--text2); }
 
@@ -268,7 +266,3 @@ label {
 .record-name    { font-weight: 500; font-size: 14px; }
 .record-chevron { color: var(--text3); }
 
-/* Status badges */
-.badge-in_service     { background: #f0fdf4; color: #166534; }
-.badge-out_of_service { background: #fef2f2; color: #991b1b; }
-.badge-pending        { background: var(--pend-bg); color: var(--pend-text); }
