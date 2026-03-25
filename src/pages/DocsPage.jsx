@@ -1,69 +1,181 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getGlobalDocuments } from '../lib/sync'
 
-const CATEGORY_LABELS = {
-  approved_tow_vehicles: 'Approved Tow Vehicles',
-  master_ops_doc:        'Master Ops Doc',
+const DOCS = {
+  master_ops_doc: {
+    title: 'Master Ops Doc',
+    url: 'https://docs.google.com/document/d/1MGR67rlNZeCjyFj4tUyvzjliYdWEo1MOI8Q6gWQm41s/edit?usp=drive_link',
+  },
+  approved_tow_vehicles: {
+    title: 'Approved Tow Vehicles',
+    url: 'https://drive.google.com/file/d/19TqX2YZZ1eWnKg88UeROQDAdYvaFJ_zZ/view?usp=drive_link',
+  },
+  technical_drawings: [
+    { title: 'Model SB Standard', url: '#' },
+  ],
+  operating_procedures: [
+    { title: 'Shipping',   url: '#' },
+    { title: 'Receiving',  url: '#' },
+    { title: 'Event Days', url: '#' },
+    { title: 'Tram Rodeo', url: '#' },
+  ],
 }
 
 export default function DocsPage() {
-  const navigate  = useNavigate()
-  const [docs,    setDocs]    = useState([])
-  const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
+  const [openSection, setOpenSection] = useState(null)
 
-  useEffect(() => {
-    async function load() {
-      const data = await getGlobalDocuments()
-      setDocs(data)
-      setLoading(false)
-    }
-    load()
-  }, [])
-
-  const categories = ['approved_tow_vehicles', 'master_ops_doc']
+  function toggleSection(key) {
+    setOpenSection(prev => prev === key ? null : key)
+  }
 
   return (
-    <div className="page">
-      <button className="back" onClick={() => navigate('/')}>← Home</button>
-      <div style={{ fontWeight: 600, fontSize: 18, marginBottom: '1.5rem' }}>Reference Docs</div>
+    <div style={{ minHeight: '100dvh', background: '#0a0f1a', fontFamily: 'system-ui, sans-serif' }}>
 
-      {loading && <div className="empty">Loading…</div>}
+      {/* Header */}
+      <div style={{ background: '#0a0f1a', padding: '18px 20px 14px', borderBottom: '0.5px solid #1e293b', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button
+          onClick={() => navigate('/')}
+          style={{ background: 'transparent', border: 'none', color: '#475569', fontSize: 20, cursor: 'pointer', padding: 0, lineHeight: 1, marginRight: 4 }}
+        >
+          ←
+        </button>
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#f1f5f9', letterSpacing: '-0.3px' }}>Reference Docs</div>
+          <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Flextram Fleet</div>
+        </div>
+      </div>
 
-      {!loading && categories.map(category => {
-        const categoryDocs = docs.filter(d => d.category === category)
-        return (
-          <div key={category} style={{ marginBottom: '1.5rem' }}>
-            <div className="section-label">{CATEGORY_LABELS[category]}</div>
-            {categoryDocs.length === 0 ? (
-              <div className="empty">No documents added yet.</div>
-            ) : (
-              <div className="card">
-                {categoryDocs.map((doc, i) => (
-                  <a
-                    key={doc.id}
-                    href={doc.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '10px 0',
-                      borderBottom: i < categoryDocs.length - 1 ? '0.5px solid var(--border)' : 'none',
-                      textDecoration: 'none',
-                      color: 'var(--text1)',
-                    }}
-                  >
-                    <span style={{ fontSize: 14 }}>{doc.title}</span>
-                    <span style={{ fontSize: 13, color: 'var(--accent)' }}>Open →</span>
-                  </a>
-                ))}
+      <div style={{ maxWidth: 480, margin: '0 auto', padding: '20px 20px' }}>
+
+        {/* Section label */}
+        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#334155', marginBottom: 12 }}>
+          Global Documents
+        </div>
+
+        {/* Master Ops Doc — direct link button */}
+        <a
+          href={DOCS.master_ops_doc.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            width: '100%', background: 'transparent', color: '#f59e0b',
+            border: '1px solid #f59e0b', borderRadius: 10, padding: '12px 16px',
+            fontSize: 14, fontWeight: 600, cursor: 'pointer', textDecoration: 'none',
+            marginBottom: 10, boxSizing: 'border-box',
+          }}
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            📄 {DOCS.master_ops_doc.title}
+          </span>
+          <span style={{ fontSize: 13, opacity: 0.7 }}>Open →</span>
+        </a>
+
+        {/* Approved Tow Vehicles — direct link button */}
+        <a
+          href={DOCS.approved_tow_vehicles.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            width: '100%', background: 'transparent', color: '#f59e0b',
+            border: '1px solid #f59e0b', borderRadius: 10, padding: '12px 16px',
+            fontSize: 14, fontWeight: 600, cursor: 'pointer', textDecoration: 'none',
+            marginBottom: 24, boxSizing: 'border-box',
+          }}
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            📄 {DOCS.approved_tow_vehicles.title}
+          </span>
+          <span style={{ fontSize: 13, opacity: 0.7 }}>Open →</span>
+        </a>
+
+        {/* Section label */}
+        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#334155', marginBottom: 12 }}>
+          Technical Reference
+        </div>
+
+        {/* Technical Drawings — dropdown */}
+        <Accordion
+          label="Technical Drawings"
+          icon="📐"
+          items={DOCS.technical_drawings}
+          isOpen={openSection === 'technical_drawings'}
+          onToggle={() => toggleSection('technical_drawings')}
+        />
+
+        {/* Operating Procedures — dropdown */}
+        <Accordion
+          label="Operating Procedures"
+          icon="📋"
+          items={DOCS.operating_procedures}
+          isOpen={openSection === 'operating_procedures'}
+          onToggle={() => toggleSection('operating_procedures')}
+        />
+
+      </div>
+    </div>
+  )
+}
+
+function Accordion({ label, icon, items, isOpen, onToggle }) {
+  return (
+    <div style={{ marginBottom: 10, border: '0.5px solid #1e293b', borderRadius: 10, overflow: 'hidden' }}>
+      {/* Header row */}
+      <button
+        onClick={onToggle}
+        style={{
+          width: '100%', background: '#0f172a', border: 'none', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '12px 16px', boxSizing: 'border-box',
+        }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, fontWeight: 600, color: '#f1f5f9' }}>
+          {icon} {label}
+        </span>
+        <span style={{ fontSize: 13, color: '#475569', transition: 'transform 0.2s', display: 'inline-block', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+          ▾
+        </span>
+      </button>
+
+      {/* Items */}
+      {isOpen && (
+        <div style={{ borderTop: '0.5px solid #1e293b' }}>
+          {items.map((item, i) => (
+            item.url === '#' ? (
+              <div
+                key={i}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '11px 16px',
+                  borderBottom: i < items.length - 1 ? '0.5px solid #1e293b' : 'none',
+                  fontSize: 14, color: '#475569',
+                }}
+              >
+                <span>{item.title}</span>
+                <span style={{ fontSize: 11, color: '#334155' }}>Coming soon</span>
               </div>
-            )}
-          </div>
-        )
-      })}
+            ) : (
+              <a
+                key={i}
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '11px 16px',
+                  borderBottom: i < items.length - 1 ? '0.5px solid #1e293b' : 'none',
+                  textDecoration: 'none', fontSize: 14, color: '#f1f5f9',
+                }}
+              >
+                <span>{item.title}</span>
+                <span style={{ fontSize: 13, color: '#f59e0b' }}>Open →</span>
+              </a>
+            )
+          ))}
+        </div>
+      )}
     </div>
   )
 }

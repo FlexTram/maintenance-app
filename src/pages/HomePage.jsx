@@ -119,6 +119,13 @@ export default function HomePage() {
           View all records
         </button>
 
+        <button
+          onClick={() => navigate('/docs')}
+          style={{ width: '100%', background: 'transparent', color: '#94a3b8', border: '0.5px solid #1e293b', borderRadius: 10, padding: 11, fontSize: 14, marginBottom: 8, cursor: 'pointer' }}
+        >
+          Quick Document Reference
+        </button>
+
         {globalDocs.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
             {globalDocs.map(doc => (
