@@ -99,7 +99,7 @@ label {
 }
 
 /* Layout helpers */
-.page   { max-width: 480px; margin: 0 auto; padding: 1rem; }
+.page   { max-width: 680px; margin: 0 auto; padding: 1rem; }
 .card   { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1rem; }
 .stack  { display: flex; flex-direction: column; gap: 8px; }
 .row    { display: flex; gap: 10px; align-items: center; }
