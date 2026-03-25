@@ -21,14 +21,15 @@ Located at: `~/Desktop/Maintenance App Project`
 - **Plan:** Pro ($25/mo) — no pausing, priority support
 - **Auth providers enabled:** Google OAuth, Email
 - **Schema:** see `supabase-schema.sql`
-- **MCP token:** stored in `.claude/settings.local.json` (gitignored)
+- **MCP:** Configured via `.mcp.json` (HTTP/OAuth to `https://mcp.supabase.com/mcp`). Authenticated via CLI (`claude mcp add`). Falls back to Management API via curl with access token.
+- **Management API (fallback):** `curl -H "Authorization: Bearer $TOKEN" https://api.supabase.com/v1/projects/lpsumqpbvhphtodffmeo/database/query -d '{"query":"SQL"}'`
 
 ## Running Locally
-Dev server must use Node 20 directly (system Node is v8 — causes failures):
 ```bash
 cd ~/Desktop/"Maintenance App Project"
-/Users/josephbradley/.nvm/versions/node/v20.20.1/bin/node ./node_modules/.bin/vite --host
+npx vite --host
 ```
+**Node version:** System default is now Node 20 via `nvm alias default v20.20.1`. If `node --version` shows v8, run `source ~/.nvm/nvm.sh && nvm use default`. The VS Code integrated shell may still pick up `/usr/local/bin/node` (v8) — use full path `/Users/josephbradley/.nvm/versions/node/v20.20.1/bin/node` as a workaround when needed.
 
 ## Env Variables
 Stored in `.env.local` (not committed). Also set in Vercel dashboard.
@@ -53,7 +54,8 @@ vercel --prod --yes
 - **Local IndexedDB cache** means the app works offline for equipment records/service history. Supabase outages only affect login, documents, and cloud sync.
 - **Development workflow**: All development done locally at `http://localhost:5173`. Push to `master` for Vercel auto-deploy only when ready to ship a feature.
 - **Phone testing**: Use Vercel production URL — Google OAuth blocks local IPs on mobile.
-- **Security**: `.claude/settings.local.json` is gitignored — never commit it. A prior token (sbp_5c3e7b...) was accidentally exposed and has been revoked.
+- **Security**: `.claude/` directory is gitignored — never commit tokens or `settings.local.json`. Prior tokens (sbp_5c3e7b..., sbp_c0436...) were revoked. Current auth uses OAuth via `.mcp.json`.
+- **Node v8 gotcha**: `/usr/local/bin/node` is v8.11.3 and cannot be removed easily. Any `#!/usr/bin/env node` shebang (including `npx`) resolves to v8 unless `PATH` is overridden. The `.claude/run-supabase-mcp.sh` wrapper exists for this reason.
 
 ## Fleet Data (loaded in Supabase)
 - **34 trams** inserted: TRAM-01 through TRAM-32, ADA-01, ADA-02
@@ -84,13 +86,6 @@ Full audit trail of every status change: `id`, `equipment_id`, `old_status`, `ne
 
 ## Pending Tasks
 - **Operating Procedures links** — need G Drive links for Shipping, Receiving, Event Days, Tram Rodeo
-- **Inspection & Repair forms** — HTML files exist at `~/Downloads/flextram_inspection_form.html` and `~/Downloads/flextram_repairs_form.html`. Need to be built as React components (`InspectionForm.jsx`, `RepairForm.jsx`) with routes `/equipment/:id/new/inspection` and `/equipment/:id/new/repair`
-- **Schema migration** — run in Supabase SQL Editor if not yet applied:
-  ```sql
-  ALTER TABLE maintenance_records
-    ADD COLUMN IF NOT EXISTS record_type text CHECK (record_type IN ('inspection', 'repair')),
-    ADD COLUMN IF NOT EXISTS form_data jsonb;
-  ```
 - **QR codes** — print and label fleet once ready
 
 ## Key Files
@@ -103,9 +98,11 @@ Full audit trail of every status change: `id`, `equipment_id`, `old_status`, `ne
 - `src/pages/DocsPage.jsx` – Reference docs page (hardcoded, no Supabase needed)
 - `src/pages/EquipmentPage.jsx` – Vehicle profile card + status toggle + maintenance history
 - `src/pages/ScanPage.jsx` – QR scan + manual entry (tram #, serial, or QR ID)
-- `src/pages/InspectionForm.jsx` – Inspection form (TODO: build)
-- `src/pages/RepairForm.jsx` – Repair form (TODO: build)
+- `src/pages/InspectionForm.jsx` – Inspection form (routes: `/equipment/:id/new/inspection`)
+- `src/pages/RepairForm.jsx` – Repair form (routes: `/equipment/:id/new/repair`)
 - `src/index.css` – All styles (CSS variables, utility classes). max-width: 680px
 - `vite.config.js` – Vite + PWA config
 - `supabase-schema.sql` – Full DB schema
-- `.claude/settings.local.json` – Supabase MCP config (gitignored)
+- `.claude/settings.local.json` – Local Claude config (gitignored)
+- `.claude/run-supabase-mcp.sh` – MCP wrapper script that forces Node 20 (gitignored)
+- `.mcp.json` – MCP server config (HTTP/OAuth to Supabase)
