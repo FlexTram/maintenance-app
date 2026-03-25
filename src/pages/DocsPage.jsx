@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { getGlobalDocuments } from '../lib/sync'
 
 const CATEGORY_LABELS = {
+  technical_drawing:     'Technical Drawings',
+  service_procedure:     'Service Procedures',
   approved_tow_vehicles: 'Approved Tow Vehicles',
   master_ops_doc:        'Master Ops Doc',
 }
@@ -21,7 +23,7 @@ export default function DocsPage() {
     load()
   }, [])
 
-  const categories = ['approved_tow_vehicles', 'master_ops_doc']
+  const categories = ['technical_drawing', 'service_procedure', 'approved_tow_vehicles', 'master_ops_doc']
 
   return (
     <div className="page">
