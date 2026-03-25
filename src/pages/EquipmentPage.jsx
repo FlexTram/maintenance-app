@@ -51,10 +51,10 @@ export default function EquipmentPage() {
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
           <div>
             <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text1)', letterSpacing: '-0.3px' }}>
-              {eq.name}
+              {eq.name}{eq.model ? ` — ${eq.model}` : ''}
             </div>
             <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 2 }}>
-              {eq.qr_id}
+              {eq.serial_number || eq.qr_id}
             </div>
           </div>
           {lastRecord && <StatusBadge status={lastRecord.status} />}
