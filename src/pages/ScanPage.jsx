@@ -84,9 +84,9 @@ export default function ScanPage() {
       {/* Result */}
       {status === 'found' && equipment && (
         <div className="card">
-          <div style={{ fontWeight: 500, marginBottom: 4 }}>{equipment.name}</div>
+          <div style={{ fontWeight: 500, marginBottom: 4 }}>{equipment.name}{equipment.model ? ` — ${equipment.model}` : ''}</div>
           <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: '1rem' }}>
-            {equipment.qr_id} · {equipment.type} · {equipment.location}
+            {equipment.serial_number || equipment.qr_id} · {equipment.type}
           </div>
           <div className="stack">
             <button
