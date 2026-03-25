@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
-import { getRecordsForEquipment, getDocumentsForEquipment } from '../lib/sync'
+import { getRecordsForEquipment, getDocumentsForEquipment, updateEquipmentStatus } from '../lib/sync'
+import { useAuth } from '../lib/auth'
 import { StatusBadge } from './HomePage'
 
 const SUBCATEGORY_LABELS = {
@@ -15,10 +16,15 @@ const SUBCATEGORY_LABELS = {
 export default function EquipmentPage() {
   const { id }     = useParams()
   const navigate   = useNavigate()
+  const { user }   = useAuth()
   const [eq,       setEq]      = useState(null)
   const [records,  setRecords] = useState([])
   const [docs,     setDocs]    = useState([])
   const [loading,  setLoading] = useState(true)
+  const [showStatusPanel, setShowStatusPanel] = useState(false)
+  const [selectedStatus,  setSelectedStatus]  = useState(null)
+  const [statusNote,      setStatusNote]      = useState('')
+  const [savingStatus,    setSavingStatus]    = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -35,10 +41,19 @@ export default function EquipmentPage() {
     load()
   }, [id])
 
+  async function handleStatusSave() {
+    if (!selectedStatus || !statusNote.trim()) return
+    setSavingStatus(true)
+    await updateEquipmentStatus(id, selectedStatus, statusNote.trim(), user?.id)
+    setEq(prev => ({ ...prev, status: selectedStatus, status_note: statusNote.trim() }))
+    setShowStatusPanel(false)
+    setSelectedStatus(null)
+    setStatusNote('')
+    setSavingStatus(false)
+  }
+
   if (loading) return <div className="empty">Loading…</div>
   if (!eq)     return <div className="empty">Equipment not found.</div>
-
-  const lastRecord  = records[0] ?? null
 
   return (
     <div className="page">
@@ -57,7 +72,7 @@ export default function EquipmentPage() {
               {eq.serial_number || eq.qr_id}
             </div>
           </div>
-          {lastRecord && <StatusBadge status={lastRecord.status} />}
+          <StatusBadge status={eq.status || 'in_service'} />
         </div>
 
         {/* Profile fields grid */}
@@ -76,6 +91,60 @@ export default function EquipmentPage() {
         {eq.notes && (
           <div style={{ marginTop: 12, padding: '8px 12px', background: '#431407', borderRadius: 8, fontSize: 13, color: '#fb923c', lineHeight: 1.5 }}>
             ⚠️ {eq.notes}
+          </div>
+        )}
+      </div>
+
+      {/* Status control */}
+      <div style={{ marginBottom: '1rem' }}>
+        {!showStatusPanel ? (
+          <button
+            onClick={() => { setShowStatusPanel(true); setSelectedStatus(eq.status || 'in_service') }}
+            style={{ width: '100%', background: 'transparent', border: '0.5px solid #1e293b', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#94a3b8', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+          >
+            <span>Change Status</span>
+            <span style={{ fontSize: 11 }}>▾</span>
+          </button>
+        ) : (
+          <div style={{ background: '#0f172a', border: '0.5px solid #1e293b', borderRadius: 12, padding: 14 }}>
+            <div style={{ fontSize: 12, color: '#64748b', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Select new status</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 12 }}>
+              {[
+                { value: 'in_service',     label: 'In Service',     color: '#4ade80', bg: '#052e16' },
+                { value: 'out_of_service', label: 'Out of Service', color: '#f87171', bg: '#450a0a' },
+                { value: 'pending',        label: 'Pending Review', color: '#fb923c', bg: '#431407' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setSelectedStatus(opt.value)}
+                  style={{ background: selectedStatus === opt.value ? opt.bg : 'transparent', color: selectedStatus === opt.value ? opt.color : '#64748b', border: `1px solid ${selectedStatus === opt.value ? opt.color : '#1e293b'}`, borderRadius: 8, padding: '8px 4px', fontSize: 11, fontWeight: 600, cursor: 'pointer', width: '100%', lineHeight: 1.3 }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <textarea
+              placeholder="Required: reason for status change…"
+              value={statusNote}
+              onChange={e => setStatusNote(e.target.value)}
+              rows={2}
+              style={{ marginBottom: 10, fontSize: 13 }}
+            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => { setShowStatusPanel(false); setSelectedStatus(null); setStatusNote('') }}
+                style={{ flex: 1, fontSize: 13, padding: '9px', background: 'transparent', color: '#64748b', border: '0.5px solid #1e293b' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleStatusSave}
+                disabled={!selectedStatus || !statusNote.trim() || savingStatus}
+                style={{ flex: 2, fontSize: 13, padding: '9px', background: !selectedStatus || !statusNote.trim() ? '#1e293b' : '#f59e0b', color: !selectedStatus || !statusNote.trim() ? '#475569' : '#0a0f1a', border: 'none', fontWeight: 600, cursor: !selectedStatus || !statusNote.trim() ? 'default' : 'pointer' }}
+              >
+                {savingStatus ? 'Saving…' : 'Save Status'}
+              </button>
+            </div>
           </div>
         )}
       </div>

@@ -174,6 +174,38 @@ export async function syncRecordsFromSupabase() {
   }
 }
 
+// ── Equipment Status ──────────────────────────────────────────
+
+/**
+ * Update the operational status of a piece of equipment.
+ * Writes to IndexedDB immediately (offline-safe), then syncs to Supabase.
+ * Also inserts a status_changes row for the audit trail.
+ */
+export async function updateEquipmentStatus(equipmentId, newStatus, note, userId) {
+  const eq = await db.equipment.get(equipmentId)
+  const oldStatus = eq?.status || null
+  const now = new Date().toISOString()
+
+  // Write locally first — offline-safe
+  await db.equipment.update(equipmentId, {
+    status:             newStatus,
+    status_note:        note,
+    status_updated_at:  now,
+    status_updated_by:  userId,
+  })
+
+  if (navigator.onLine) {
+    await supabase
+      .from('equipment')
+      .update({ status: newStatus, status_note: note, status_updated_at: now, status_updated_by: userId })
+      .eq('id', equipmentId)
+
+    await supabase
+      .from('status_changes')
+      .insert({ equipment_id: equipmentId, old_status: oldStatus, new_status: newStatus, note, changed_by: userId })
+  }
+}
+
 // ── Documents ─────────────────────────────────────────────────
 
 /**

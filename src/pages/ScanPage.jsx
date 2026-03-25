@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Html5Qrcode } from 'html5-qrcode'
 import { getEquipmentByQrId, getEquipmentByIdentifier } from '../lib/sync'
+import { StatusBadge } from './HomePage'
 
 export default function ScanPage() {
   const navigate   = useNavigate()
@@ -84,7 +85,10 @@ export default function ScanPage() {
       {/* Result */}
       {status === 'found' && equipment && (
         <div className="card">
-          <div style={{ fontWeight: 500, marginBottom: 4 }}>{equipment.name}{equipment.model ? ` — ${equipment.model}` : ''}</div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
+            <div style={{ fontWeight: 500 }}>{equipment.name}{equipment.model ? ` — ${equipment.model}` : ''}</div>
+            <StatusBadge status={equipment.status || 'in_service'} />
+          </div>
           <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: '1rem' }}>
             {equipment.serial_number || equipment.qr_id}
           </div>

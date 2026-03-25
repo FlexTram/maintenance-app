@@ -253,6 +253,7 @@ label {
 .stat-card:hover, .stat-card.active { background: #111d33; }
 .stat-card.in-service:hover, .stat-card.in-service.active  { border-color: #4ade80; box-shadow: 0 0 12px rgba(74,222,128,0.2); }
 .stat-card.out-of-service:hover, .stat-card.out-of-service.active { border-color: #f87171; box-shadow: 0 0 12px rgba(248,113,113,0.2); }
+.stat-card.pending:hover, .stat-card.pending.active { border-color: #fb923c; box-shadow: 0 0 12px rgba(251,146,60,0.2); }
 
 /* Home page */
 .home-header    { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }

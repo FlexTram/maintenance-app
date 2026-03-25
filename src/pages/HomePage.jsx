@@ -8,23 +8,20 @@ export default function HomePage() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const [recent,    setRecent]    = useState([])
-  const [stats,     setStats]     = useState({ inService: 0, outOfService: 0 })
+  const [stats,     setStats]     = useState({ inService: 0, outOfService: 0, pending: 0 })
   const [globalDocs, setGlobalDocs] = useState([])
 
   useEffect(() => {
     async function load() {
       const [recs, equip] = await Promise.all([getAllRecords(), getAllEquipment()])
 
-      const latestByEquip = {}
-      for (const r of recs) {
-        if (!latestByEquip[r.equipment_id]) latestByEquip[r.equipment_id] = r
-      }
-      let inService = 0, outOfService = 0
-      Object.values(latestByEquip).forEach(r => {
-        if (r.status === 'in_service') inService++
-        else if (r.status === 'out_of_service') outOfService++
+      let inService = 0, outOfService = 0, pending = 0
+      equip.forEach(e => {
+        if (e.status === 'out_of_service') outOfService++
+        else if (e.status === 'pending') pending++
+        else inService++
       })
-      setStats({ inService, outOfService })
+      setStats({ inService, outOfService, pending })
 
       const seen = new Set()
       const recentEquip = []
@@ -80,15 +77,15 @@ export default function HomePage() {
           style={{ width: '100%', borderRadius: 10, marginBottom: 10, display: 'block', paddingTop: 5, paddingBottom: 5 }}
         />
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
           <div className="stat-card in-service"
             onClick={() => navigate('/records?filter=in_service')}
             onPointerDown={e => e.currentTarget.classList.add('active')}
             onPointerUp={e => e.currentTarget.classList.remove('active')}
             onPointerLeave={e => e.currentTarget.classList.remove('active')}
           >
-            <div style={{ fontSize: 11, color: '#475569', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>In service</div>
-            <div style={{ fontSize: 26, fontWeight: 600, color: '#4ade80' }}>{stats.inService}</div>
+            <div style={{ fontSize: 10, color: '#475569', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>In service</div>
+            <div style={{ fontSize: 24, fontWeight: 600, color: '#4ade80' }}>{stats.inService}</div>
           </div>
           <div className="stat-card out-of-service"
             onClick={() => navigate('/records?filter=out_of_service')}
@@ -96,8 +93,17 @@ export default function HomePage() {
             onPointerUp={e => e.currentTarget.classList.remove('active')}
             onPointerLeave={e => e.currentTarget.classList.remove('active')}
           >
-            <div style={{ fontSize: 11, color: '#475569', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Out of service</div>
-            <div style={{ fontSize: 26, fontWeight: 600, color: '#f87171' }}>{stats.outOfService}</div>
+            <div style={{ fontSize: 10, color: '#475569', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Out of service</div>
+            <div style={{ fontSize: 24, fontWeight: 600, color: '#f87171' }}>{stats.outOfService}</div>
+          </div>
+          <div className="stat-card pending"
+            onClick={() => navigate('/records?filter=pending')}
+            onPointerDown={e => e.currentTarget.classList.add('active')}
+            onPointerUp={e => e.currentTarget.classList.remove('active')}
+            onPointerLeave={e => e.currentTarget.classList.remove('active')}
+          >
+            <div style={{ fontSize: 10, color: '#475569', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pending</div>
+            <div style={{ fontSize: 24, fontWeight: 600, color: '#fb923c' }}>{stats.pending}</div>
           </div>
         </div>
 
