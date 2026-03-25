@@ -80,13 +80,14 @@ export default function EquipmentPage() {
         )}
       </div>
 
-      <button
-        className="primary"
-        style={{ marginBottom: '1.5rem' }}
-        onClick={() => navigate(`/equipment/${id}/new`)}
-      >
-        + New Maintenance Record
-      </button>
+      <div className="stack" style={{ marginBottom: '1.5rem' }}>
+        <button className="primary" onClick={() => navigate(`/equipment/${id}/new/inspection`)}>
+          + Log Inspection
+        </button>
+        <button onClick={() => navigate(`/equipment/${id}/new/repair`)}>
+          + Log Repair
+        </button>
+      </div>
 
       {/* Documents */}
       {['technical_drawing', 'service_procedure'].map(category => {

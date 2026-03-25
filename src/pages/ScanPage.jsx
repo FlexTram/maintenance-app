@@ -89,16 +89,14 @@ export default function ScanPage() {
             {equipment.serial_number || equipment.qr_id}
           </div>
           <div className="stack">
-            <button
-              className="primary"
-              onClick={() => navigate(`/equipment/${equipment.id}`)}
-            >
+            <button className="primary" onClick={() => navigate(`/equipment/${equipment.id}`)}>
               View equipment record
             </button>
-            <button
-              onClick={() => navigate(`/equipment/${equipment.id}/new`)}
-            >
-              + Log maintenance now
+            <button onClick={() => navigate(`/equipment/${equipment.id}/new/inspection`)}>
+              + Log Inspection
+            </button>
+            <button onClick={() => navigate(`/equipment/${equipment.id}/new/repair`)}>
+              + Log Repair
             </button>
           </div>
         </div>

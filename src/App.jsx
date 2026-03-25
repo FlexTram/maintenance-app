@@ -7,7 +7,9 @@ import LoginPage    from './pages/LoginPage'
 import HomePage     from './pages/HomePage'
 import ScanPage     from './pages/ScanPage'
 import EquipmentPage from './pages/EquipmentPage'
-import NewRecordPage from './pages/NewRecordPage'
+import NewRecordPage  from './pages/NewRecordPage'
+import InspectionForm from './pages/InspectionForm'
+import RepairForm     from './pages/RepairForm'
 import RecordsPage  from './pages/RecordsPage'
 import DocsPage     from './pages/DocsPage'
 
@@ -41,7 +43,9 @@ export default function App() {
         <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
         <Route path="/scan" element={<ProtectedRoute><ScanPage /></ProtectedRoute>} />
         <Route path="/equipment/:id" element={<ProtectedRoute><EquipmentPage /></ProtectedRoute>} />
-        <Route path="/equipment/:id/new" element={<ProtectedRoute><NewRecordPage /></ProtectedRoute>} />
+        <Route path="/equipment/:id/new"             element={<ProtectedRoute><NewRecordPage /></ProtectedRoute>} />
+        <Route path="/equipment/:id/new/inspection" element={<ProtectedRoute><InspectionForm /></ProtectedRoute>} />
+        <Route path="/equipment/:id/new/repair"     element={<ProtectedRoute><RepairForm /></ProtectedRoute>} />
         <Route path="/records" element={<ProtectedRoute><RecordsPage /></ProtectedRoute>} />
         <Route path="/docs"    element={<ProtectedRoute><DocsPage /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
