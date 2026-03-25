@@ -12,6 +12,7 @@ const DOCS = {
   },
   technical_drawings: [
     { title: 'Model SB Standard', url: 'https://drive.google.com/file/d/1ZQw-n5XnmILVMTgnjKCGqqDgWtbV2j86/view?usp=drive_link' },
+    { title: 'Model SB Standard Wiring Diagram', url: 'https://drive.google.com/file/d/1uFPImoT0-kifxrK91ocsDGpAIgrhFTJg/view?usp=drive_link' },
   ],
   operating_procedures: [
     { title: 'Shipping',   url: '#' },
