@@ -46,6 +46,14 @@ Push to `master` → Vercel auto-deploys. Or manually:
 vercel --prod --yes
 ```
 
+## Pending Supabase Actions
+When PostgREST outage is resolved, verify/confirm:
+- **Documents table** has `category` column with values: `technical_drawing`, `service_procedure`, `approved_tow_vehicles`, `master_ops_doc`
+- **RLS policy** on `documents` table: authenticated users can SELECT where `equipment_id IS NULL` (global docs) — policy uses `auth.uid() IS NOT NULL`
+- **Global doc buttons** on HomePage should auto-appear once Supabase REST API is back (fetches `equipment_id IS NULL` docs)
+- **DocsPage** (`/docs`) now shows all 4 categories — verify docs in each category display correctly
+- **Support ticket** filed for PGRST002 PostgREST schema cache error
+
 ## Key Files
 - `src/lib/supabase.js` – Supabase client
 - `src/lib/auth.jsx` – Auth context + Google OAuth
