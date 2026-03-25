@@ -17,11 +17,9 @@ import { supabase } from './supabase'
  * Tries local cache first, falls back to Supabase if online.
  */
 export async function getEquipmentByQrId(qrId) {
-  // Try local cache first (works offline)
   const cached = await db.equipment.where('qr_id').equals(qrId).first()
   if (cached) return cached
 
-  // Not cached — try Supabase
   const { data, error } = await supabase
     .from('equipment')
     .select('*')
@@ -29,8 +27,36 @@ export async function getEquipmentByQrId(qrId) {
     .single()
 
   if (error || !data) return null
+  await db.equipment.put(data)
+  return data
+}
 
-  // Cache it locally for offline use
+/**
+ * Look up equipment by tram number, serial number, or QR ID.
+ * Tries each field in order. Case-insensitive for tram numbers.
+ * Used by the manual entry fallback on the scan page.
+ */
+export async function getEquipmentByIdentifier(value) {
+  const v = value.trim()
+
+  // Try local cache across all three fields
+  const all = await db.equipment.toArray()
+  const match = all.find(e =>
+    e.tram_number?.toLowerCase() === v.toLowerCase() ||
+    e.serial_number?.toLowerCase() === v.toLowerCase() ||
+    e.qr_id?.toLowerCase() === v.toLowerCase()
+  )
+  if (match) return match
+
+  // Fall back to Supabase
+  const { data, error } = await supabase
+    .from('equipment')
+    .select('*')
+    .or(`tram_number.ilike.${v},serial_number.ilike.${v},qr_id.ilike.${v}`)
+    .limit(1)
+    .single()
+
+  if (error || !data) return null
   await db.equipment.put(data)
   return data
 }

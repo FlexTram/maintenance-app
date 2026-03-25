@@ -11,14 +11,24 @@ create extension if not exists "pgcrypto";
 -- The `qr_id` is what gets encoded into the QR code (e.g. "EQ-001").
 
 create table if not exists equipment (
-  id          uuid primary key default gen_random_uuid(),
-  qr_id       text unique not null,        -- value encoded in the QR code
-  name        text not null,               -- e.g. "Compressor Unit A"
-  type        text,                        -- e.g. "HVAC", "Electrical"
-  location    text,                        -- e.g. "Roof Level 2"
-  notes       text,                        -- any static notes about the equipment
-  created_at  timestamptz default now()
+  id              uuid primary key default gen_random_uuid(),
+  qr_id           text unique not null,        -- value encoded in the QR code (e.g. "TRAM-01")
+  name            text not null,               -- e.g. "Tram 1"
+  type            text,                        -- e.g. "Tram"
+  location        text,
+  notes           text,
+  tram_number     text,                        -- e.g. "1", "ADA#1"
+  serial_number   text,                        -- e.g. "SB0012017"
+  model_year      text,                        -- e.g. "2021"
+  manufacturer    text,                        -- e.g. "FlexTram / OCI"
+  model           text,                        -- e.g. "SB Standard"
+  canopy_details  text,                        -- e.g. '3" TOP', 'Light Blue Top'
+  created_at      timestamptz default now()
 );
+
+create unique index if not exists idx_equipment_serial
+  on equipment(serial_number)
+  where serial_number is not null;
 
 -- ── Maintenance records table ────────────────────────────────
 create table if not exists maintenance_records (

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Html5Qrcode } from 'html5-qrcode'
-import { getEquipmentByQrId } from '../lib/sync'
+import { getEquipmentByQrId, getEquipmentByIdentifier } from '../lib/sync'
 
 export default function ScanPage() {
   const navigate   = useNavigate()
@@ -132,11 +132,11 @@ function ManualEntry({ onFound, onError }) {
   async function handleSubmit(e) {
     e.preventDefault()
     if (!value.trim()) return
-    const eq = await getEquipmentByQrId(value.trim().toUpperCase())
+    const eq = await getEquipmentByIdentifier(value.trim())
     if (eq) {
       onFound(eq)
     } else {
-      onError(`No equipment found for ID "${value.trim()}"`)
+      onError(`No tram found for "${value.trim()}". Try a tram number, serial number, or QR ID.`)
     }
   }
 
@@ -144,7 +144,7 @@ function ManualEntry({ onFound, onError }) {
     <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 8 }}>
       <input
         type="text"
-        placeholder="Equipment ID (e.g. EQ-001)"
+        placeholder="Tram #, Serial Number, or QR ID"
         value={value}
         onChange={e => setValue(e.target.value)}
         style={{ flex: 1 }}
