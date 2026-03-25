@@ -148,19 +148,19 @@ export default function EquipmentPage() {
               rows={2}
               style={{ marginBottom: 10, fontSize: 13 }}
             />
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                onClick={() => { setShowStatusPanel(false); setSelectedStatus(null); setStatusNote('') }}
-                style={{ flex: 1, fontSize: 13, padding: '9px', background: 'transparent', color: '#64748b', border: '0.5px solid #1e293b' }}
-              >
-                Cancel
-              </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <button
                 onClick={handleStatusSave}
                 disabled={!selectedStatus || !statusNote.trim() || savingStatus}
-                style={{ flex: 2, fontSize: 14, padding: '11px', fontWeight: 700, border: 'none', borderRadius: 8, background: !selectedStatus || !statusNote.trim() ? '#1e293b' : '#f59e0b', color: !selectedStatus || !statusNote.trim() ? '#475569' : '#0a0f1a', cursor: !selectedStatus || !statusNote.trim() ? 'default' : 'pointer', letterSpacing: '0.02em' }}
+                style={{ width: '100%', fontSize: 15, padding: '13px', fontWeight: 700, border: 'none', borderRadius: 8, background: !selectedStatus || !statusNote.trim() ? '#1e293b' : '#f59e0b', color: !selectedStatus || !statusNote.trim() ? '#475569' : '#0a0f1a', cursor: !selectedStatus || !statusNote.trim() ? 'default' : 'pointer', letterSpacing: '0.02em' }}
               >
                 {savingStatus ? 'Saving…' : 'Save Status'}
+              </button>
+              <button
+                onClick={() => { setShowStatusPanel(false); setSelectedStatus(null); setStatusNote('') }}
+                style={{ width: '100%', fontSize: 13, padding: '9px', background: 'transparent', color: '#475569', border: 'none' }}
+              >
+                Cancel
               </button>
             </div>
           </div>
