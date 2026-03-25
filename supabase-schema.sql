@@ -39,6 +39,8 @@ create table if not exists maintenance_records (
   status          text not null check (status in ('in_service', 'out_of_service', 'pending')),
   inspection_notes text,
   parts_replaced  text[],                  -- array of part names/numbers
+  record_type     text check (record_type in ('inspection', 'repair')),
+  form_data       jsonb,                   -- full structured form payload
   synced_at       timestamptz default now(),
   created_by      uuid references auth.users(id)
 );
