@@ -11,7 +11,7 @@ const DOCS = {
     url: 'https://drive.google.com/file/d/19TqX2YZZ1eWnKg88UeROQDAdYvaFJ_zZ/view?usp=drive_link',
   },
   technical_drawings: [
-    { title: 'Model SB Standard', url: '#' },
+    { title: 'Model SB Standard', url: 'https://drive.google.com/file/d/1ZQw-n5XnmILVMTgnjKCGqqDgWtbV2j86/view?usp=drive_link' },
   ],
   operating_procedures: [
     { title: 'Shipping',   url: '#' },
