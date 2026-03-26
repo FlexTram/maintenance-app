@@ -259,6 +259,21 @@ export async function getStatusChangesForEquipment(equipmentId) {
   return data || []
 }
 
+/**
+ * Fetch all status changes across the fleet.
+ */
+export async function getAllStatusChanges() {
+  const { data, error } = await supabase
+    .from('status_changes')
+    .select('*')
+    .order('changed_at', { ascending: false })
+  if (error) {
+    console.error('Failed to fetch all status changes:', error)
+    return []
+  }
+  return data || []
+}
+
 // ── Documents ─────────────────────────────────────────────────
 
 /**
