@@ -36,6 +36,15 @@ export default function RepairForm() {
 
   useEffect(() => { db.equipment.get(id).then(setEq) }, [id])
 
+  function formatRO(val) {
+    const raw = val.replace(/[^a-zA-Z0-9-]/g, '').toUpperCase()
+    if (!raw.startsWith('RO-')) {
+      const digits = raw.replace(/^RO-?/i, '').replace(/[^A-Z0-9]/g, '')
+      return 'RO-' + digits
+    }
+    return raw
+  }
+
   async function submit() {
     const errs = []
     if (!tech.trim()) errs.push('Technician Name is required')
@@ -118,7 +127,7 @@ export default function RepairForm() {
             <input value={eq.model_year || ''} readOnly style={{ opacity: 0.6 }} />
           </FormField>
           <FormField label="Repair Order #">
-            <input value={ro} onChange={e => setRo(e.target.value)} placeholder="RO-XXXXX" />
+            <input value={ro} onChange={e => setRo(formatRO(e.target.value))} placeholder="RO-XXXXX" />
           </FormField>
           <FormField label="ADA Compliant">
             <div style={{ display: 'flex', gap: 16, paddingTop: 4 }}>

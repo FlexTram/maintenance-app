@@ -49,6 +49,16 @@ export default function InspectionForm() {
 
   useEffect(() => { db.equipment.get(id).then(setEq) }, [id])
 
+  function formatRO(val) {
+    // Strip non-alphanumeric, ensure RO- prefix, uppercase
+    const raw = val.replace(/[^a-zA-Z0-9-]/g, '').toUpperCase()
+    if (!raw.startsWith('RO-')) {
+      const digits = raw.replace(/^RO-?/i, '').replace(/[^A-Z0-9]/g, '')
+      return 'RO-' + digits
+    }
+    return raw
+  }
+
   function updateItem(setter, item, val) {
     setter(prev => ({ ...prev, items: { ...prev.items, [item]: val } }))
   }
@@ -157,7 +167,7 @@ export default function InspectionForm() {
             <input value={eq.model_year || ''} readOnly style={{ opacity: 0.6 }} />
           </FormField>
           <FormField label="Repair Order # *">
-            <input value={ro} onChange={e => { setRo(e.target.value); setErrors([]) }} placeholder="RO-XXXXX"
+            <input value={ro} onChange={e => { setRo(formatRO(e.target.value)); setErrors([]) }} placeholder="RO-XXXXX"
               style={errors.length && !ro.trim() ? { borderColor: '#ef4444' } : {}} />
           </FormField>
           <FormField label="ADA Compliant">
