@@ -19,6 +19,16 @@ export default function ScanPage() {
 
   async function startScanner() {
     setStatus('scanning')
+    // Wait for React to render the #qr-reader div before attaching the scanner
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    const el = document.getElementById('qr-reader')
+    if (!el) {
+      setStatus('error')
+      setMessage('Camera viewfinder failed to load. Please try again.')
+      return
+    }
+
     const scanner = new Html5Qrcode('qr-reader')
     scannerRef.current = scanner
 
