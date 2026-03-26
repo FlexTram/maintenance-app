@@ -107,6 +107,7 @@ function Accordion({ label, icon, items, isOpen, onToggle }) {
       {/* Header row */}
       <button
         onClick={onToggle}
+        aria-expanded={isOpen}
         style={{
           width: '100%', background: '#0f172a', border: 'none', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -114,9 +115,9 @@ function Accordion({ label, icon, items, isOpen, onToggle }) {
         }}
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, fontWeight: 600, color: '#f1f5f9' }}>
-          {icon} {label}
+          <span aria-hidden="true">{icon}</span> {label}
         </span>
-        <span style={{ fontSize: 13, color: '#475569', transition: 'transform 0.2s', display: 'inline-block', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+        <span aria-hidden="true" style={{ fontSize: 13, color: '#475569', transition: 'transform 0.2s', display: 'inline-block', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
           ▾
         </span>
       </button>
@@ -128,6 +129,7 @@ function Accordion({ label, icon, items, isOpen, onToggle }) {
             item.url === '#' ? (
               <div
                 key={i}
+                aria-disabled="true"
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '11px 16px',

@@ -74,8 +74,9 @@ export default function HomePage() {
         />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
-          <div className="stat-card in-service"
+          <div className="stat-card in-service" role="button" tabIndex="0" aria-label={`${stats.inService} trams in service`}
             onClick={() => navigate('/records?filter=in_service&view=equipment')}
+            onKeyDown={e => e.key === 'Enter' && navigate('/records?filter=in_service&view=equipment')}
             onPointerDown={e => e.currentTarget.classList.add('active')}
             onPointerUp={e => e.currentTarget.classList.remove('active')}
             onPointerLeave={e => e.currentTarget.classList.remove('active')}
@@ -83,8 +84,9 @@ export default function HomePage() {
             <div style={{ fontSize: 10, color: '#475569', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>In service</div>
             <div style={{ fontSize: 24, fontWeight: 600, color: '#4ade80' }}>{stats.inService}</div>
           </div>
-          <div className="stat-card out-of-service"
+          <div className="stat-card out-of-service" role="button" tabIndex="0" aria-label={`${stats.outOfService} trams out of service`}
             onClick={() => navigate('/records?filter=out_of_service&view=equipment')}
+            onKeyDown={e => e.key === 'Enter' && navigate('/records?filter=out_of_service&view=equipment')}
             onPointerDown={e => e.currentTarget.classList.add('active')}
             onPointerUp={e => e.currentTarget.classList.remove('active')}
             onPointerLeave={e => e.currentTarget.classList.remove('active')}
@@ -92,8 +94,9 @@ export default function HomePage() {
             <div style={{ fontSize: 10, color: '#475569', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Out of service</div>
             <div style={{ fontSize: 24, fontWeight: 600, color: '#f87171' }}>{stats.outOfService}</div>
           </div>
-          <div className="stat-card pending"
+          <div className="stat-card pending" role="button" tabIndex="0" aria-label={`${stats.pending} trams pending`}
             onClick={() => navigate('/records?filter=pending&view=equipment')}
+            onKeyDown={e => e.key === 'Enter' && navigate('/records?filter=pending&view=equipment')}
             onPointerDown={e => e.currentTarget.classList.add('active')}
             onPointerUp={e => e.currentTarget.classList.remove('active')}
             onPointerLeave={e => e.currentTarget.classList.remove('active')}
@@ -107,7 +110,7 @@ export default function HomePage() {
           onClick={() => navigate('/scan')}
           style={{ width: '100%', background: '#f59e0b', color: '#0a0f1a', border: 'none', borderRadius: 10, padding: 14, fontSize: 15, fontWeight: 700, marginBottom: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
             <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
           </svg>
@@ -118,7 +121,7 @@ export default function HomePage() {
           onClick={() => navigate('/records?view=records')}
           style={{ width: '100%', background: 'transparent', color: '#94a3b8', border: '0.5px solid #1e293b', borderRadius: 10, padding: 11, fontSize: 14, marginBottom: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
             <rect x="9" y="3" width="6" height="4" rx="1" />
             <path d="M9 12h6" /><path d="M9 16h6" />
@@ -130,7 +133,7 @@ export default function HomePage() {
           onClick={() => navigate('/docs')}
           style={{ width: '100%', background: 'transparent', color: '#94a3b8', border: '0.5px solid #1e293b', borderRadius: 10, padding: 11, fontSize: 14, marginBottom: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
             <polyline points="14 2 14 8 20 8" />
             <line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
@@ -146,10 +149,12 @@ export default function HomePage() {
             {recent.map(({ eq, lastRecord }) => (
               <div
                 key={eq.id}
+                role="button" tabIndex="0" aria-label={`View ${eq.name}`}
                 onClick={() => navigate(`/equipment/${eq.id}`)}
+                onKeyDown={e => e.key === 'Enter' && navigate(`/equipment/${eq.id}`)}
                 style={{ border: '0.5px solid #1e293b', borderRadius: 10, padding: 12, marginBottom: 7, display: 'flex', alignItems: 'center', gap: 12, background: '#0f172a', cursor: 'pointer' }}
               >
-                <div style={{ width: 36, height: 36, background: '#1e293b', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+                <div style={{ width: 36, height: 36, background: '#1e293b', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }} aria-hidden="true">
                   {eq.icon || '⚙️'}
                 </div>
                 <div style={{ flex: 1 }}>

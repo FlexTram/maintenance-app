@@ -84,7 +84,7 @@ export default function ScanPage() {
       {/* Camera viewfinder */}
       {status === 'scanning' && (
         <div style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden', marginBottom: '1rem', background: '#000' }}>
-          <div id="qr-reader" style={{ width: '100%' }} />
+          <div id="qr-reader" aria-label="Camera viewfinder for QR code scanning" style={{ width: '100%' }} />
         </div>
       )}
 
@@ -101,8 +101,10 @@ export default function ScanPage() {
             {results.length} results found — select one:
           </div>
           {results.map(eq => (
-            <div key={eq.id} className="record" style={{ cursor: 'pointer' }}
-              onClick={() => { setEquipment(eq); setResults([]) }}>
+            <div key={eq.id} className="record" role="button" tabIndex="0" aria-label={`Select ${eq.name}`}
+              style={{ cursor: 'pointer' }}
+              onClick={() => { setEquipment(eq); setResults([]) }}
+              onKeyDown={e => { if (e.key === 'Enter') { setEquipment(eq); setResults([]) } }}>
               <div className="record-header">
                 <span style={{ fontWeight: 500, fontSize: 14 }}>
                   {eq.name}{eq.model ? ` — ${eq.model}` : ''}
@@ -144,7 +146,7 @@ export default function ScanPage() {
       )}
 
       {status === 'error' && (
-        <div className="card">
+        <div className="card" role="alert">
           <div style={{ color: 'var(--fail-text)', fontSize: 14, marginBottom: '1rem' }}>{message}</div>
           <button onClick={retry}>Try again</button>
         </div>
@@ -190,6 +192,7 @@ function ManualEntry({ onFound, onError }) {
       <input
         type="text"
         placeholder="Tram #, Serial Number, or QR ID"
+        aria-label="Search by tram number, serial number, or QR ID"
         value={value}
         onChange={e => setValue(e.target.value)}
         style={{ flex: 1 }}

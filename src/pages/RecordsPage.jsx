@@ -9,7 +9,9 @@ function StatusGroupCardFleet({ eq, changes, navigate, color, bg, latestDate, st
 
   return (
     <div
+      role="button" tabIndex="0" aria-expanded={expanded} aria-label={`Status changes for ${eq?.name || 'Unknown'}`}
       onClick={(e) => { e.stopPropagation(); setExpanded(!expanded) }}
+      onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setExpanded(!expanded) } }}
       style={{
         border: `1px solid ${color}40`, borderRadius: 8, padding: '8px 12px',
         marginBottom: 8, background: bg, cursor: 'pointer',
@@ -23,7 +25,7 @@ function StatusGroupCardFleet({ eq, changes, navigate, color, bg, latestDate, st
           <span style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9' }}>{eq?.name || 'Unknown'}</span>
           <span style={{ fontSize: 13, fontWeight: 600, color }}>{statusLabel(latest.new_status)}</span>
         </div>
-        <span style={{ fontSize: 10, color: '#64748b' }}>{expanded ? '▾' : '▸'} {changes.length > 1 ? `${changes.length}` : ''}</span>
+        <span aria-hidden="true" style={{ fontSize: 10, color: '#64748b' }}>{expanded ? '▾' : '▸'} {changes.length > 1 ? `${changes.length}` : ''}</span>
       </div>
       <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
         {latest.note && <span>{latest.note} · </span>}
@@ -40,7 +42,7 @@ function StatusGroupCardFleet({ eq, changes, navigate, color, bg, latestDate, st
             return (
               <div key={sc.id || i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 12 }}>
                 <span style={{ color: statusColor(sc.old_status) }}>{statusLabel(sc.old_status)}</span>
-                <span style={{ color: '#64748b' }}>→</span>
+                <span aria-hidden="true" style={{ color: '#64748b' }}>→</span>
                 <span style={{ color: statusColor(sc.new_status) }}>{statusLabel(sc.new_status)}</span>
                 {sc.note && <span style={{ color: '#64748b' }}>· {sc.note}</span>}
                 {sc.changed_by_name && <span style={{ color: '#475569' }}>· {sc.changed_by_name}</span>}
@@ -153,13 +155,14 @@ export default function RecordsPage() {
       </div>
 
       {/* Filter tabs */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: '1rem', flexWrap: 'wrap' }}>
+      <div role="tablist" aria-label="Filter by status" style={{ display: 'flex', gap: 6, marginBottom: '1rem', flexWrap: 'wrap' }}>
         {['all', 'in_service', 'out_of_service', 'pending'].map(f => {
           const active = filter === f
           const c = filterColors[f]
           return (
             <button
               key={f}
+              role="tab" aria-selected={active}
               onClick={() => setFilter(f)}
               style={{
                 width: 'auto',
@@ -189,8 +192,10 @@ export default function RecordsPage() {
             <div
               key={eq.id}
               className="record"
+              role="button" tabIndex="0" aria-label={`View ${eq.name}`}
               style={{ cursor: 'pointer' }}
               onClick={() => navigate(`/equipment/${eq.id}`)}
+              onKeyDown={e => e.key === 'Enter' && navigate(`/equipment/${eq.id}`)}
             >
               <div className="record-header">
                 <span style={{ fontWeight: 500, fontSize: 14 }}>
