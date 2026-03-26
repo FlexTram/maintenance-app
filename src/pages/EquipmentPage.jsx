@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
-import { getRecordsForEquipment, getDocumentsForEquipment, updateEquipmentStatus } from '../lib/sync'
+import { getRecordsForEquipment, getDocumentsForEquipment, getStatusChangesForEquipment, updateEquipmentStatus } from '../lib/sync'
 import { useAuth } from '../lib/auth'
 import { StatusBadge } from './HomePage'
 
@@ -20,6 +20,7 @@ export default function EquipmentPage() {
   const [eq,       setEq]      = useState(null)
   const [records,  setRecords] = useState([])
   const [docs,     setDocs]    = useState([])
+  const [timeline, setTimeline] = useState([])
   const [loading,  setLoading] = useState(true)
   const [showStatusPanel, setShowStatusPanel] = useState(false)
   const [selectedStatus,  setSelectedStatus]  = useState(null)
@@ -30,14 +31,23 @@ export default function EquipmentPage() {
     let cancelled = false
     async function load() {
       const equipment = await db.equipment.get(id)
-      const [recs, documents] = await Promise.all([
+      const [recs, documents, statusChanges] = await Promise.all([
         getRecordsForEquipment(id),
         getDocumentsForEquipment(id),
+        getStatusChangesForEquipment(id),
       ])
       if (cancelled) return
       setEq(equipment)
       setRecords(recs)
       setDocs(documents)
+
+      // Build merged timeline
+      const merged = [
+        ...recs.map(r => ({ ...r, _type: 'record', _sortDate: r.service_date })),
+        ...statusChanges.map(sc => ({ ...sc, _type: 'status_change', _sortDate: sc.changed_at?.split('T')[0] || sc.changed_at })),
+      ].sort((a, b) => (b._sortDate || '').localeCompare(a._sortDate || ''))
+      setTimeline(merged)
+
       setLoading(false)
     }
     load()
@@ -216,12 +226,16 @@ export default function EquipmentPage() {
         )
       })}
 
-      {/* History */}
+      {/* History Timeline */}
       <div className="section-label">Maintenance history</div>
-      {records.length === 0 ? (
+      {timeline.length === 0 ? (
         <div className="empty">No records yet for this equipment.</div>
       ) : (
-        records.map(r => <RecordCard key={r.localId || r.id} record={r} />)
+        timeline.map((entry, i) =>
+          entry._type === 'status_change'
+            ? <StatusChangeCard key={`sc-${entry.id || i}`} change={entry} />
+            : <RecordCard key={entry.localId || entry.id} record={entry} />
+        )
       )}
     </div>
   )
@@ -240,19 +254,38 @@ function ProfileField({ label, value }) {
   )
 }
 
+function RecordTypeBadge({ type }) {
+  const isInspection = type === 'inspection'
+  return (
+    <span style={{
+      fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+      padding: '3px 8px', borderRadius: 4,
+      background: isInspection ? '#1e3a5f' : '#5c2d0e',
+      color: isInspection ? '#60a5fa' : '#fb923c',
+    }}>
+      {isInspection ? 'Inspection' : 'Repair'}
+    </span>
+  )
+}
+
 function RecordCard({ record: r }) {
   const date = new Date(r.service_date + 'T12:00:00').toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   })
+  const roNumber = r.form_data?.ro_number
 
   return (
     <div className="record">
       <div className="record-header">
-        <span style={{ fontWeight: 500, fontSize: 14 }}>{r.technician_name}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {r.record_type && <RecordTypeBadge type={r.record_type} />}
+          <span style={{ fontWeight: 500, fontSize: 14 }}>{r.technician_name}</span>
+        </div>
         <StatusBadge status={r.status} />
       </div>
       <div className="record-meta">
         {date}
+        {roNumber && <span style={{ marginLeft: 8, color: 'var(--accent)', fontWeight: 600 }}>{roNumber}</span>}
         {r.synced === 0 && <span className="badge badge-offline" style={{ marginLeft: 8 }}>Pending sync</span>}
       </div>
       {r.inspection_notes && (
@@ -265,6 +298,37 @@ function RecordCard({ record: r }) {
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function StatusChangeCard({ change: sc }) {
+  const date = sc.changed_at
+    ? new Date(sc.changed_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : 'Unknown date'
+
+  const statusLabel = s => (s || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  const statusColor = s => s === 'in_service' ? '#4ade80' : s === 'out_of_service' ? '#f87171' : '#fb923c'
+
+  return (
+    <div style={{
+      borderLeft: '3px solid #64748b', padding: '10px 14px', marginBottom: 8,
+      background: 'var(--surface)', borderRadius: '0 8px 8px 0',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 4, background: '#1e293b', color: '#94a3b8' }}>
+            Status Change
+          </span>
+          <span style={{ color: statusColor(sc.old_status) }}>{statusLabel(sc.old_status)}</span>
+          <span style={{ color: '#64748b' }}>→</span>
+          <span style={{ color: statusColor(sc.new_status) }}>{statusLabel(sc.new_status)}</span>
+        </div>
+      </div>
+      {sc.note && (
+        <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5 }}>{sc.note}</div>
+      )}
+      <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4 }}>{date}</div>
     </div>
   )
 }

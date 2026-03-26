@@ -211,6 +211,24 @@ export async function updateEquipmentStatus(equipmentId, newStatus, note, userId
   }
 }
 
+// ── Status Changes ────────────────────────────────────────────
+
+/**
+ * Fetch status change audit trail for a piece of equipment.
+ */
+export async function getStatusChangesForEquipment(equipmentId) {
+  const { data, error } = await supabase
+    .from('status_changes')
+    .select('*')
+    .eq('equipment_id', equipmentId)
+    .order('changed_at', { ascending: false })
+  if (error) {
+    console.error('Failed to fetch status changes:', error)
+    return []
+  }
+  return data || []
+}
+
 // ── Documents ─────────────────────────────────────────────────
 
 /**
