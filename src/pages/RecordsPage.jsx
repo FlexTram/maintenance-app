@@ -148,23 +148,26 @@ export default function RecordsPage() {
                 : entry.new_status === 'out_of_service' ? '#450a0a' : '#431407'
               return (
                 <div key={`sc-${entry.id || i}`}
-                  style={{ borderLeft: `3px solid ${statusClr(entry.new_status)}`, padding: '10px 14px', marginBottom: 8, background: 'var(--surface)', borderRadius: '0 8px 8px 0', cursor: eq ? 'pointer' : 'default' }}
+                  className="record"
+                  style={{ cursor: eq ? 'pointer' : 'default', borderColor: statusClr(entry.new_status) }}
                   onClick={() => eq && navigate(`/equipment/${eq.id}`)}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 4, background: badgeBg, color: statusClr(entry.new_status) }}>
-                      Status Change
-                    </span>
-                    <span style={{ fontWeight: 500 }}>{eq?.name || 'Unknown'}</span>
-                    <span style={{ color: statusClr(entry.old_status) }}>{statusLbl(entry.old_status)}</span>
-                    <span style={{ color: '#64748b' }}>→</span>
-                    <span style={{ color: statusClr(entry.new_status) }}>{statusLbl(entry.new_status)}</span>
+                  <div className="record-header">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 4, background: badgeBg, color: statusClr(entry.new_status) }}>
+                        Status Change
+                      </span>
+                      <span style={{ fontWeight: 500, fontSize: 14 }}>{eq?.name || 'Unknown'}</span>
+                    </div>
                   </div>
-                  {entry.note && <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 6 }}>{entry.note}</div>}
-                  <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4 }}>
-                    {date}
+                  <div className="record-meta">
+                    <span style={{ color: statusClr(entry.old_status) }}>{statusLbl(entry.old_status)}</span>
+                    <span style={{ color: '#64748b', margin: '0 4px' }}>→</span>
+                    <span style={{ color: statusClr(entry.new_status) }}>{statusLbl(entry.new_status)}</span>
+                    <span style={{ marginLeft: 8 }}>{date}</span>
                     {entry.changed_by_name && <span> · {entry.changed_by_name}</span>}
                   </div>
+                  {entry.note && <div className="record-notes">{entry.note}</div>}
                 </div>
               )
             }

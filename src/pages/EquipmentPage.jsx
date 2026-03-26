@@ -397,34 +397,31 @@ function StatusChangeCard({ change: sc }) {
   const statusLabel = s => (s || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
   const statusColor = s => s === 'in_service' ? '#4ade80' : s === 'out_of_service' ? '#f87171' : '#fb923c'
 
-  // Badge color reflects the outcome (new_status)
   const badgeColor = statusColor(sc.new_status)
   const badgeBg = sc.new_status === 'in_service' ? '#052e16'
     : sc.new_status === 'out_of_service' ? '#450a0a' : '#431407'
-  const borderColor = statusColor(sc.new_status)
 
   return (
-    <div style={{
-      borderLeft: `3px solid ${borderColor}`, padding: '10px 14px', marginBottom: 8,
-      background: 'var(--surface)', borderRadius: '0 8px 8px 0',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, flexWrap: 'wrap' }}>
+    <div className="record" style={{ borderColor: statusColor(sc.new_status) }}>
+      <div className="record-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 4, background: badgeBg, color: badgeColor }}>
             Status Change
           </span>
-          <span style={{ color: statusColor(sc.old_status) }}>{statusLabel(sc.old_status)}</span>
-          <span style={{ color: '#64748b' }}>→</span>
-          <span style={{ color: statusColor(sc.new_status) }}>{statusLabel(sc.new_status)}</span>
+          <span style={{ fontWeight: 500, fontSize: 14 }}>
+            <span style={{ color: statusColor(sc.old_status) }}>{statusLabel(sc.old_status)}</span>
+            <span style={{ color: '#64748b', margin: '0 6px' }}>→</span>
+            <span style={{ color: statusColor(sc.new_status) }}>{statusLabel(sc.new_status)}</span>
+          </span>
         </div>
       </div>
-      {sc.note && (
-        <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5 }}>{sc.note}</div>
-      )}
-      <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4 }}>
+      <div className="record-meta">
         {date}
-        {sc.changed_by_name && <span style={{ marginLeft: 8 }}>· {sc.changed_by_name}</span>}
+        {sc.changed_by_name && <span> · {sc.changed_by_name}</span>}
       </div>
+      {sc.note && (
+        <div className="record-notes">{sc.note}</div>
+      )}
     </div>
   )
 }
