@@ -74,7 +74,7 @@ export default function HomePage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
           <div className="stat-card in-service"
-            onClick={() => navigate('/records?filter=in_service')}
+            onClick={() => navigate('/records?filter=in_service&view=equipment')}
             onPointerDown={e => e.currentTarget.classList.add('active')}
             onPointerUp={e => e.currentTarget.classList.remove('active')}
             onPointerLeave={e => e.currentTarget.classList.remove('active')}
@@ -83,7 +83,7 @@ export default function HomePage() {
             <div style={{ fontSize: 24, fontWeight: 600, color: '#4ade80' }}>{stats.inService}</div>
           </div>
           <div className="stat-card out-of-service"
-            onClick={() => navigate('/records?filter=out_of_service')}
+            onClick={() => navigate('/records?filter=out_of_service&view=equipment')}
             onPointerDown={e => e.currentTarget.classList.add('active')}
             onPointerUp={e => e.currentTarget.classList.remove('active')}
             onPointerLeave={e => e.currentTarget.classList.remove('active')}
@@ -92,7 +92,7 @@ export default function HomePage() {
             <div style={{ fontSize: 24, fontWeight: 600, color: '#f87171' }}>{stats.outOfService}</div>
           </div>
           <div className="stat-card pending"
-            onClick={() => navigate('/records?filter=pending')}
+            onClick={() => navigate('/records?filter=pending&view=equipment')}
             onPointerDown={e => e.currentTarget.classList.add('active')}
             onPointerUp={e => e.currentTarget.classList.remove('active')}
             onPointerLeave={e => e.currentTarget.classList.remove('active')}
@@ -114,7 +114,7 @@ export default function HomePage() {
         </button>
 
         <button
-          onClick={() => navigate('/records')}
+          onClick={() => navigate('/records?view=records')}
           style={{ width: '100%', background: 'transparent', color: '#94a3b8', border: '0.5px solid #1e293b', borderRadius: 10, padding: 11, fontSize: 14, marginBottom: 8, cursor: 'pointer' }}
         >
           View all records
