@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
-import { getRecordsForEquipment, getDocumentsForEquipment, getStatusChangesForEquipment, updateEquipmentStatus } from '../lib/sync'
+import { getRecordsForEquipment, getDocumentsForEquipment, getStatusChangesForEquipment, updateEquipmentStatus, voidRecord } from '../lib/sync'
 import { useAuth } from '../lib/auth'
 import { StatusBadge } from './HomePage'
 
@@ -26,6 +26,7 @@ export default function EquipmentPage() {
   const [selectedStatus,  setSelectedStatus]  = useState(null)
   const [statusNote,      setStatusNote]      = useState('')
   const [savingStatus,    setSavingStatus]    = useState(false)
+  const [showVoided,      setShowVoided]      = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -57,13 +58,31 @@ export default function EquipmentPage() {
   async function handleStatusSave() {
     if (!selectedStatus || !statusNote.trim()) return
     setSavingStatus(true)
-    await updateEquipmentStatus(id, selectedStatus, statusNote.trim(), user?.id)
+    await updateEquipmentStatus(id, selectedStatus, statusNote.trim(), user?.id, user?.user_metadata?.full_name)
     setEq(prev => ({ ...prev, status: selectedStatus, status_note: statusNote.trim() }))
     setShowStatusPanel(false)
     setSelectedStatus(null)
     setStatusNote('')
     setSavingStatus(false)
   }
+
+  async function handleVoid(entry, reason) {
+    await voidRecord(entry.localId, entry.id, reason, user?.id)
+    setTimeline(prev => prev.map(t =>
+      (t.localId === entry.localId || t.id === entry.id) && t._type === 'record'
+        ? { ...t, voided: true, voided_reason: reason }
+        : t
+    ))
+    setRecords(prev => prev.map(r =>
+      (r.localId === entry.localId || r.id === entry.id)
+        ? { ...r, voided: true, voided_reason: reason }
+        : r
+    ))
+  }
+
+  const visibleTimeline = showVoided
+    ? timeline
+    : timeline.filter(t => t._type !== 'record' || !t.voided)
 
   if (loading) return <div className="empty">Loading…</div>
   if (!eq)     return <div className="empty">Equipment not found.</div>
@@ -229,14 +248,23 @@ export default function EquipmentPage() {
       })}
 
       {/* History Timeline */}
-      <div className="section-label">Maintenance history</div>
-      {timeline.length === 0 ? (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div className="section-label" style={{ marginBottom: 0 }}>Maintenance history</div>
+        {timeline.some(t => t._type === 'record' && t.voided) && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text2)', cursor: 'pointer' }}>
+            <input type="checkbox" checked={showVoided} onChange={e => setShowVoided(e.target.checked)}
+              style={{ accentColor: 'var(--accent)', width: 14, height: 14 }} />
+            Show voided
+          </label>
+        )}
+      </div>
+      {visibleTimeline.length === 0 ? (
         <div className="empty">No records yet for this equipment.</div>
       ) : (
-        timeline.map((entry, i) =>
+        visibleTimeline.map((entry, i) =>
           entry._type === 'status_change'
             ? <StatusChangeCard key={`sc-${entry.id || i}`} change={entry} />
-            : <RecordCard key={entry.localId || entry.id} record={entry} />
+            : <RecordCard key={entry.localId || entry.id} record={entry} onVoid={handleVoid} />
         )
       )}
     </div>
@@ -270,34 +298,82 @@ function RecordTypeBadge({ type }) {
   )
 }
 
-function RecordCard({ record: r }) {
+function RecordCard({ record: r, onVoid }) {
+  const [showVoidConfirm, setShowVoidConfirm] = useState(false)
+  const [voidReason, setVoidReason] = useState('')
+  const [voiding, setVoiding] = useState(false)
+
   const date = new Date(r.service_date + 'T12:00:00').toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   })
   const roNumber = r.form_data?.ro_number
+  const isVoided = r.voided
+
+  async function confirmVoid() {
+    if (!voidReason.trim()) return
+    setVoiding(true)
+    await onVoid(r, voidReason.trim())
+    setShowVoidConfirm(false)
+    setVoiding(false)
+  }
 
   return (
-    <div className="record">
+    <div className="record" style={isVoided ? { opacity: 0.5, background: '#1e293b' } : {}}>
       <div className="record-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {r.record_type && <RecordTypeBadge type={r.record_type} />}
-          <span style={{ fontWeight: 500, fontSize: 14 }}>{r.technician_name}</span>
+          <span style={{ fontWeight: 500, fontSize: 14, textDecoration: isVoided ? 'line-through' : 'none' }}>{r.technician_name}</span>
+          {isVoided && (
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 4, background: '#450a0a', color: '#f87171' }}>
+              Voided
+            </span>
+          )}
         </div>
-        <StatusBadge status={r.status} />
+        {!isVoided && !showVoidConfirm && (
+          <button onClick={() => setShowVoidConfirm(true)}
+            style={{ fontSize: 11, color: '#64748b', background: 'transparent', border: '1px solid #1e293b', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', width: 'auto' }}>
+            Void
+          </button>
+        )}
       </div>
-      <div className="record-meta">
+      <div className="record-meta" style={{ textDecoration: isVoided ? 'line-through' : 'none' }}>
         {date}
         {roNumber && <span style={{ marginLeft: 8, color: 'var(--accent)', fontWeight: 600 }}>{roNumber}</span>}
         {r.synced === 0 && <span className="badge badge-offline" style={{ marginLeft: 8 }}>Pending sync</span>}
       </div>
-      {r.inspection_notes && (
+      {isVoided && r.voided_reason && (
+        <div style={{ marginTop: 6, fontSize: 12, color: '#f87171', fontStyle: 'italic' }}>
+          Void reason: {r.voided_reason}
+        </div>
+      )}
+      {!isVoided && r.inspection_notes && (
         <div className="record-notes">{r.inspection_notes}</div>
       )}
-      {r.parts_replaced?.length > 0 && (
+      {!isVoided && r.parts_replaced?.length > 0 && (
         <div style={{ marginTop: 8 }}>
           {r.parts_replaced.map((p, i) => (
             <span key={i} className="chip">{p}</span>
           ))}
+        </div>
+      )}
+      {showVoidConfirm && !isVoided && (
+        <div style={{ marginTop: 10, padding: 10, background: '#1e293b', borderRadius: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#f87171', marginBottom: 6 }}>Void this record?</div>
+          <textarea
+            value={voidReason} onChange={e => setVoidReason(e.target.value)}
+            placeholder="Reason for voiding (required)…"
+            style={{ fontSize: 13, minHeight: 60, marginBottom: 8 }}
+          />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={confirmVoid} disabled={!voidReason.trim() || voiding}
+              style={{ flex: 1, fontSize: 13, fontWeight: 700, padding: '8px 0', borderRadius: 6, border: 'none', background: !voidReason.trim() ? '#1e293b' : '#ef4444', color: !voidReason.trim() ? '#475569' : '#fff', cursor: !voidReason.trim() ? 'default' : 'pointer' }}>
+              {voiding ? 'Voiding…' : 'Confirm Void'}
+            </button>
+            <button onClick={() => { setShowVoidConfirm(false); setVoidReason('') }}
+              style={{ flex: 1, fontSize: 13, padding: '8px 0', borderRadius: 6, background: 'transparent', color: '#64748b', border: '1px solid #1e293b' }}>
+              Cancel
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -312,14 +388,20 @@ function StatusChangeCard({ change: sc }) {
   const statusLabel = s => (s || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
   const statusColor = s => s === 'in_service' ? '#4ade80' : s === 'out_of_service' ? '#f87171' : '#fb923c'
 
+  // Badge color reflects the outcome (new_status)
+  const badgeColor = statusColor(sc.new_status)
+  const badgeBg = sc.new_status === 'in_service' ? '#052e16'
+    : sc.new_status === 'out_of_service' ? '#450a0a' : '#431407'
+  const borderColor = statusColor(sc.new_status)
+
   return (
     <div style={{
-      borderLeft: '3px solid #64748b', padding: '10px 14px', marginBottom: 8,
+      borderLeft: `3px solid ${borderColor}`, padding: '10px 14px', marginBottom: 8,
       background: 'var(--surface)', borderRadius: '0 8px 8px 0',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 4, background: '#1e293b', color: '#94a3b8' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 4, background: badgeBg, color: badgeColor }}>
             Status Change
           </span>
           <span style={{ color: statusColor(sc.old_status) }}>{statusLabel(sc.old_status)}</span>
@@ -330,7 +412,10 @@ function StatusChangeCard({ change: sc }) {
       {sc.note && (
         <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5 }}>{sc.note}</div>
       )}
-      <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4 }}>{date}</div>
+      <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4 }}>
+        {date}
+        {sc.changed_by_name && <span style={{ marginLeft: 8 }}>· {sc.changed_by_name}</span>}
+      </div>
     </div>
   )
 }

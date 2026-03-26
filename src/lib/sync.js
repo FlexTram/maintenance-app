@@ -179,6 +179,36 @@ export async function syncRecordsFromSupabase() {
   }
 }
 
+// ── Void Records ─────────────────────────────────────────────
+
+/**
+ * Void a maintenance record. The record stays in the database
+ * but is flagged as voided with a reason, timestamp, and user.
+ */
+export async function voidRecord(localId, supabaseId, reason, userId) {
+  const now = new Date().toISOString()
+
+  // Update locally
+  await db.records.update(localId, {
+    voided: true,
+    voided_reason: reason,
+    voided_at: now,
+    voided_by: userId,
+  })
+
+  // Sync to Supabase if online and record has a Supabase ID
+  if (navigator.onLine && supabaseId) {
+    const { error } = await supabase
+      .from('maintenance_records')
+      .update({ voided: true, voided_reason: reason, voided_at: now, voided_by: userId })
+      .eq('id', supabaseId)
+
+    if (error) {
+      console.error('[sync] Failed to void record in Supabase:', error.message)
+    }
+  }
+}
+
 // ── Equipment Status ──────────────────────────────────────────
 
 /**
@@ -186,7 +216,7 @@ export async function syncRecordsFromSupabase() {
  * Writes to IndexedDB immediately (offline-safe), then syncs to Supabase.
  * Also inserts a status_changes row for the audit trail.
  */
-export async function updateEquipmentStatus(equipmentId, newStatus, note, userId) {
+export async function updateEquipmentStatus(equipmentId, newStatus, note, userId, userName) {
   const eq = await db.equipment.get(equipmentId)
   const oldStatus = eq?.status || null
   const now = new Date().toISOString()
@@ -207,7 +237,7 @@ export async function updateEquipmentStatus(equipmentId, newStatus, note, userId
 
     await supabase
       .from('status_changes')
-      .insert({ equipment_id: equipmentId, old_status: oldStatus, new_status: newStatus, note, changed_by: userId })
+      .insert({ equipment_id: equipmentId, old_status: oldStatus, new_status: newStatus, note, changed_by: userId, changed_by_name: userName })
   }
 }
 

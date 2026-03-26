@@ -33,7 +33,8 @@ export default function RecordsPage() {
         return e.status === filter
       })
 
-  const filteredRecords = filter === 'all' ? records : records.filter(r => r.status === filter)
+  const activeRecords = records.filter(r => !r.voided)
+  const filteredRecords = filter === 'all' ? activeRecords : activeRecords.filter(r => r.status === filter)
 
   const statusLabel = f =>
     f === 'all' ? 'All' : f === 'in_service' ? 'In service' : f === 'out_of_service' ? 'Out of service' : 'Pending'
