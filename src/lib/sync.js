@@ -26,7 +26,8 @@ export async function getEquipmentByQrId(qrId) {
     .eq('qr_id', qrId)
     .single()
 
-  if (error || !data) return null
+  if (error) { console.error('[sync] getEquipmentByQrId failed:', error.message); return null }
+  if (!data) return null
   await db.equipment.put(data)
   return data
 }
@@ -56,7 +57,8 @@ export async function getEquipmentByIdentifier(value) {
     .limit(1)
     .single()
 
-  if (error || !data) return null
+  if (error) { console.error('[sync] getEquipmentByIdentifier failed:', error.message); return null }
+  if (!data) return null
   await db.equipment.put(data)
   return data
 }
@@ -67,7 +69,8 @@ export async function getEquipmentByIdentifier(value) {
  */
 export async function syncEquipmentCache() {
   const { data, error } = await supabase.from('equipment').select('*')
-  if (error || !data) return
+  if (error) { console.error('[sync] syncEquipmentCache failed:', error.message); return }
+  if (!data) return
 
   await db.equipment.bulkPut(data)
 }
@@ -146,8 +149,9 @@ export async function flushPendingRecords() {
       .select()
       .single()
 
-    if (!error && data) {
-      // Mark as synced in local DB
+    if (error) {
+      console.error('[sync] Failed to sync record:', error.message)
+    } else if (data) {
       await db.records.update(localId, { synced: 1, id: data.id })
     }
   }
@@ -163,7 +167,8 @@ export async function syncRecordsFromSupabase() {
     .select('*')
     .order('service_date', { ascending: false })
 
-  if (error || !data) return
+  if (error) { console.error('[sync] syncRecordsFromSupabase failed:', error.message); return }
+  if (!data) return
 
   // Merge into local DB (don't overwrite unsynced local records)
   for (const record of data) {
@@ -236,6 +241,5 @@ export async function getGlobalDocuments() {
 // Automatically flush the queue whenever the device comes back online.
 
 window.addEventListener('online', () => {
-  console.log('[sync] Back online — flushing pending records')
   flushPendingRecords()
 })

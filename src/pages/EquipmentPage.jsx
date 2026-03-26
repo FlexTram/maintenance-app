@@ -27,18 +27,21 @@ export default function EquipmentPage() {
   const [savingStatus,    setSavingStatus]    = useState(false)
 
   useEffect(() => {
+    let cancelled = false
     async function load() {
       const equipment = await db.equipment.get(id)
       const [recs, documents] = await Promise.all([
         getRecordsForEquipment(id),
         getDocumentsForEquipment(id),
       ])
+      if (cancelled) return
       setEq(equipment)
       setRecords(recs)
       setDocs(documents)
       setLoading(false)
     }
     load()
+    return () => { cancelled = true }
   }, [id])
 
   async function handleStatusSave() {

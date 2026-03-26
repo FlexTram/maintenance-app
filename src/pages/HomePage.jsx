@@ -10,8 +10,10 @@ export default function HomePage() {
   const [stats,     setStats]     = useState({ inService: 0, outOfService: 0, pending: 0 })
 
   useEffect(() => {
+    let cancelled = false
     async function load() {
       const [recs, equip] = await Promise.all([getAllRecords(), getAllEquipment()])
+      if (cancelled) return
 
       let inService = 0, outOfService = 0, pending = 0
       equip.forEach(e => {
@@ -34,6 +36,7 @@ export default function HomePage() {
       setRecent(recentEquip)
     }
     load()
+    return () => { cancelled = true }
   }, [user])
 
   const firstName = user?.user_metadata?.full_name?.split(' ')[0] || 'there'

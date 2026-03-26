@@ -1,16 +1,18 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+const STORAGE_BASE = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/documents`
+
 const DOCS = {
   master_ops_doc: {
     title: 'Master Ops Doc',
     url: 'https://docs.google.com/document/d/1MGR67rlNZeCjyFj4tUyvzjliYdWEo1MOI8Q6gWQm41s/edit?usp=drive_link',
   },
   technical_documents: [
-    { title: 'Model SB Standard', url: 'https://lpsumqpbvhphtodffmeo.supabase.co/storage/v1/object/public/documents/FlexTram_Technical_Drawings_Dimensions_app_ref.pdf' },
-    { title: 'Model SB Standard Wiring Diagram', url: 'https://lpsumqpbvhphtodffmeo.supabase.co/storage/v1/object/public/documents/flextram_wiring_diagram_app_ref.pdf' },
-    { title: 'Approved Tow Vehicles', url: 'https://lpsumqpbvhphtodffmeo.supabase.co/storage/v1/object/public/documents/FlexTram_Tow_Vehicles_Maintenance_app_ref.pdf' },
-    { title: 'Trailer Loading', url: 'https://lpsumqpbvhphtodffmeo.supabase.co/storage/v1/object/public/documents/trailer_load_plan_app_ref.pdf' },
+    { title: 'Model SB Standard', url: `${STORAGE_BASE}/FlexTram_Technical_Drawings_Dimensions_app_ref.pdf` },
+    { title: 'Model SB Standard Wiring Diagram', url: `${STORAGE_BASE}/flextram_wiring_diagram_app_ref.pdf` },
+    { title: 'Approved Tow Vehicles', url: `${STORAGE_BASE}/FlexTram_Tow_Vehicles_Maintenance_app_ref.pdf` },
+    { title: 'Trailer Loading', url: `${STORAGE_BASE}/trailer_load_plan_app_ref.pdf` },
   ],
   operating_procedures: [
     { title: 'Shipping',   url: '#' },

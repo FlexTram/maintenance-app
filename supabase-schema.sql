@@ -76,6 +76,35 @@ create policy "Users can update their own records"
   on maintenance_records for update
   using (created_by = auth.uid());
 
+-- ── Status changes table (audit trail) ──────────────────────
+create table if not exists status_changes (
+  id           uuid primary key default gen_random_uuid(),
+  equipment_id uuid references equipment(id) on delete cascade,
+  old_status   text,
+  new_status   text,
+  note         text,
+  changed_by   uuid references auth.users(id),
+  changed_at   timestamptz default now()
+);
+
+create index if not exists idx_status_changes_equipment on status_changes(equipment_id);
+
+alter table status_changes enable row level security;
+
+create policy "Authenticated users can view status changes"
+  on status_changes for select
+  using (auth.uid() is not null);
+
+create policy "Authenticated users can insert status changes"
+  on status_changes for insert
+  with check (auth.uid() is not null);
+
+-- ── Equipment delete protection ─────────────────────────────
+-- Prevent any user from deleting equipment records
+create policy "No equipment deletes"
+  on equipment for delete
+  using (false);
+
 -- ── Documents table ──────────────────────────────────────────
 -- Stores links to technical docs, service procedures, and fleet-wide references.
 -- equipment_id is NULL for global/fleet-wide documents.
