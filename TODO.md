@@ -1,26 +1,34 @@
-# Maintenance App — TODO (March 26, 2026)
+# Maintenance App — TODO (Updated March 26, 2026)
 
-## Low Priority (from code audit)
-- [ ] **Form validation improvements** — Inspection/Repair forms only require technician name; signatures and other fields can be submitted empty
-- [ ] **Disable form inputs while saving** — Prevent double-submit on inspection/repair forms
-- [ ] **Accessibility pass** — Add aria-labels to stat cards, SVG icons, and interactive elements
-
-## Pending (from CLAUDE.md)
+## Pending
 - [ ] **Operating Procedures links** — Need Google Drive links for Shipping, Receiving, Event Days, Tram Rodeo (currently show "Coming soon" in DocsPage)
 - [ ] **QR codes** — Print and label the fleet (TRAM-01 through TRAM-32, ADA-01, ADA-02)
+- [ ] **Accessibility pass** — Add aria-labels to stat cards, SVG icons, and interactive elements
 
 ## Nice to Have
 - [ ] **Code splitting** — Build warns about 823KB bundle; lazy-load InspectionForm/RepairForm/ScanPage to cut initial load
 - [ ] **Unused Supabase indexes** — 8 indexes flagged as unused; fine for now but revisit once app has more traffic
 
-## Completed Tonight (March 25)
-- [x] Moved static docs (technical drawings, wiring diagram, tow vehicles, trailer loading) from Google Drive to Supabase Storage
-- [x] Added PWA offline caching for storage docs (CacheFirst, 30-day)
+## Completed — March 26 (Session 2)
+- [x] Form validation — strict on InspectionForm (tech name, date, RO#, signature, at least one item), light on RepairForm (tech name, signature, one section)
+- [x] Inline error banners replacing alert(), red border highlights on invalid fields
+- [x] try/catch error handling on form submit (no more stuck "Saving..." state)
+- [x] RO# auto-formatting to RO-XXXXX pattern on both forms
+- [x] Maintenance history timeline — INSPECTION/REPAIR badges on record cards, RO# displayed
+- [x] Status change audit trail — compact "living" group cards that reflect current state, tap to expand full history
+- [x] Stat cards now link to fleet equipment list filtered by status (not empty records)
+- [x] Color-coded filter tabs on RecordsPage (green/red/orange matching status)
+- [x] Records filtered by equipment's CURRENT status, not record's status at submission
+- [x] Void record workflow — any user can void with reason, voided records in collapsible section
+- [x] Retired Trams 14 & 15 — excluded from counts, no service buttons, "See ADA Trams" note
+- [x] Fuzzy/partial search on scan page — returns multiple results for selection
+- [x] Status change cards show changed-by user name
+- [x] Icons on homepage nav buttons (clipboard for records, document for docs)
+- [x] Unified card design across timeline, then evolved to compact living status cards
+
+## Completed — March 25 (Session 1)
+- [x] Moved static docs from Google Drive to Supabase Storage with offline caching
 - [x] Reorganized DocsPage — Technical Documents accordion with all 4 PDFs
 - [x] Cleaned up HomePage — removed inline doc buttons
 - [x] Fixed oversized submit buttons on inspection/repair forms
-- [x] Added status_changes table to schema.sql
-- [x] Added equipment DELETE deny RLS policy
-- [x] Removed console.log from production, added proper error logging
-- [x] Fixed useEffect race conditions in HomePage/EquipmentPage
-- [x] Extracted hardcoded Supabase project ID to env variable
+- [x] Code quality & security cleanup — RLS policies, console.log removal, race conditions, env vars

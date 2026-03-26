@@ -60,20 +60,20 @@ vercel --prod --yes
 
 ## Fleet Data (loaded in Supabase)
 - **34 trams** inserted: TRAM-01 through TRAM-32, ADA-01, ADA-02
-- **Trams 14 & 15**: have serial numbers (SB0142021, SB0152021) but "DNE — Refer to ADA unit" in notes
+- **Trams 14 & 15**: `retired` status — serial numbers exist (SB0142021, SB0152021) for traceability but units are reassigned to ADA trams. Excluded from fleet counts, no service buttons, profile shows "See ADA Trams" note.
 - **QR ID format**: `TRAM-01` ... `TRAM-32`, `ADA-01`, `ADA-02`
-- **Manual lookup**: searches `tram_number`, `serial_number`, or `qr_id` — all three work on the scan page
+- **Manual lookup**: partial/fuzzy search across `tram_number`, `serial_number`, `qr_id`, and `name` — returns multiple results for selection (e.g. typing "ADA" shows both ADA trams)
 
 ## Database Schema
 
 ### equipment table
-`id`, `qr_id`, `name`, `type`, `location`, `notes`, `tram_number`, `serial_number`, `model_year`, `manufacturer`, `model`, `canopy_details`, `status` (in_service/out_of_service/pending), `status_note`, `status_updated_at`, `status_updated_by`, `created_at`
+`id`, `qr_id`, `name`, `type`, `location`, `notes`, `tram_number`, `serial_number`, `model_year`, `manufacturer`, `model`, `canopy_details`, `status` (in_service/out_of_service/pending/retired), `status_note`, `status_updated_at`, `status_updated_by`, `created_at`
 
 ### maintenance_records table
-`id`, `equipment_id`, `technician_name`, `service_date`, `status`, `inspection_notes`, `parts_replaced`, `record_type` (inspection/repair), `form_data` (jsonb), `synced_at`, `created_by`
+`id`, `equipment_id`, `technician_name`, `service_date`, `status`, `inspection_notes`, `parts_replaced`, `record_type` (inspection/repair), `form_data` (jsonb), `synced_at`, `created_by`, `voided` (boolean), `voided_reason`, `voided_at`, `voided_by`
 
 ### status_changes table
-Full audit trail of every status change: `id`, `equipment_id`, `old_status`, `new_status`, `note`, `changed_by`, `changed_at`
+Full audit trail of every status change: `id`, `equipment_id`, `old_status`, `new_status`, `note`, `changed_by`, `changed_by_name`, `changed_at`
 
 ### documents table
 `id`, `equipment_id` (NULL = fleet-wide), `title`, `url`, `category`, `subcategory`, `created_at`
@@ -101,11 +101,12 @@ All 4 static docs are also in the `documents` table for dynamic queries from Equ
 - `src/lib/supabase.js` – Supabase client
 - `src/lib/auth.jsx` – Auth context + Google OAuth
 - `src/lib/db.js` – Local IndexedDB helpers
-- `src/lib/sync.js` – Sync logic; includes `getEquipmentByIdentifier()` for multi-field tram lookup
+- `src/lib/sync.js` – Sync logic; `getEquipmentByIdentifier()` (fuzzy search), `voidRecord()`, `getStatusChangesForEquipment()`, `getAllStatusChanges()`
 - `src/pages/LoginPage.jsx` – Login screen with Flextram artwork
-- `src/pages/HomePage.jsx` – Dashboard with 3 stat cards (In Service / Out of Service / Pending), Quick Document Reference button
+- `src/pages/HomePage.jsx` – Dashboard with 3 stat cards (In Service / Out of Service / Pending), icons on nav buttons
+- `src/pages/RecordsPage.jsx` – Fleet equipment list + all records timeline with color-coded filter tabs
 - `src/pages/DocsPage.jsx` – Reference docs page (hardcoded, no Supabase needed)
-- `src/pages/EquipmentPage.jsx` – Vehicle profile card + status toggle + maintenance history
+- `src/pages/EquipmentPage.jsx` – Vehicle profile card + status toggle + timeline (Active Records + Voided Records + status group cards)
 - `src/pages/ScanPage.jsx` – QR scan + manual entry (tram #, serial, or QR ID)
 - `src/pages/InspectionForm.jsx` – Inspection form (routes: `/equipment/:id/new/inspection`)
 - `src/pages/RepairForm.jsx` – Repair form (routes: `/equipment/:id/new/repair`)
