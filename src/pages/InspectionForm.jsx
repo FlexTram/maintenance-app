@@ -21,6 +21,7 @@ export default function InspectionForm() {
   const { user } = useAuth()
   const [eq, setEq]       = useState(null)
   const [saving, setSaving] = useState(false)
+  const [errors, setErrors] = useState([])
 
   const [tech, setTech]   = useState(user?.user_metadata?.full_name || '')
   const [date, setDate]   = useState(new Date().toISOString().split('T')[0])
@@ -55,26 +56,64 @@ export default function InspectionForm() {
     setter(prev => ({ ...prev, [field]: val }))
   }
 
+  // Collect all inspection item values across every section
+  function getAllItemValues() {
+    const vals = []
+    ;[wheelLF, wheelRF, wheelLR, wheelRR].forEach(c => Object.values(c.items).forEach(v => vals.push(v)))
+    ;[steerLF, steerRF, steerLR, steerRR].forEach(c => Object.values(c.items).forEach(v => vals.push(v)))
+    ;[hitchItems, wiringItems, underItems, aboveItems].forEach(s => Object.values(s).forEach(v => vals.push(v)))
+    return vals
+  }
+
   async function submit() {
-    if (!tech.trim()) { alert('Please enter technician name.'); return }
-    setSaving(true)
-    const formData = {
-      ro_number: ro, ada_compliant: ada,
-      wheel_assembly: { left_front: wheelLF, right_front: wheelRF, left_rear: wheelLR, right_rear: wheelRR },
-      steering_system: { left_front: steerLF, right_front: steerRF, left_rear: steerLR, right_rear: steerRR },
-      hitch_system: hitchItems, wiring_system: wiringItems,
-      under_tram: underItems, above_tram: aboveItems,
-      general_comments: generalComments,
-      tech_signature: techSig, tech_sig_date: techSigDate,
-      supervisor_signature: supSig, supervisor_sig_date: supSigDate,
+    const errs = []
+    if (!tech.trim()) errs.push('Technician Name is required')
+    if (!date) errs.push('Date is required')
+    if (!ro.trim()) errs.push('Repair Order # is required')
+    if (!techSig.trim()) errs.push('Technician Signature is required')
+
+    const allVals = getAllItemValues()
+    const hasAnyChecked = allVals.some(v => v !== '')
+    if (!hasAnyChecked) errs.push('At least one inspection item must be checked')
+
+    if (errs.length) {
+      setErrors(errs)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
     }
-    await saveRecord({
-      equipment_id: id, technician_name: tech, service_date: date,
-      status, inspection_notes: generalComments || 'Inspection completed',
-      parts_replaced: [], created_by: user?.id,
-      record_type: 'inspection', form_data: formData,
-    })
-    navigate(`/equipment/${id}`)
+
+    // Warn if nothing flagged as Warn/Urgent
+    const hasFlag = allVals.some(v => v === 'warn' || v === 'danger')
+    if (!hasFlag) {
+      const ok = window.confirm('No items flagged as Warn/Urgent. Submit anyway?')
+      if (!ok) return
+    }
+
+    setErrors([])
+    setSaving(true)
+    try {
+      const formData = {
+        ro_number: ro, ada_compliant: ada,
+        wheel_assembly: { left_front: wheelLF, right_front: wheelRF, left_rear: wheelLR, right_rear: wheelRR },
+        steering_system: { left_front: steerLF, right_front: steerRF, left_rear: steerLR, right_rear: steerRR },
+        hitch_system: hitchItems, wiring_system: wiringItems,
+        under_tram: underItems, above_tram: aboveItems,
+        general_comments: generalComments,
+        tech_signature: techSig, tech_sig_date: techSigDate,
+        supervisor_signature: supSig, supervisor_sig_date: supSigDate,
+      }
+      await saveRecord({
+        equipment_id: id, technician_name: tech, service_date: date,
+        status, inspection_notes: generalComments || 'Inspection completed',
+        parts_replaced: [], created_by: user?.id,
+        record_type: 'inspection', form_data: formData,
+      })
+      navigate(`/equipment/${id}`)
+    } catch (err) {
+      console.error('Failed to save inspection:', err)
+      setErrors(['Failed to save — please try again'])
+      setSaving(false)
+    }
   }
 
   if (!eq) return <div className="empty">Loading…</div>
@@ -87,15 +126,26 @@ export default function InspectionForm() {
         {eq.name}{eq.model ? ` — ${eq.model}` : ''} · {eq.serial_number || eq.qr_id}
       </div>
 
+      {errors.length > 0 && (
+        <div style={{ background: '#ef44441a', border: '1px solid #ef4444', borderRadius: 8, padding: '12px 16px', marginBottom: '1.5rem' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#ef4444', marginBottom: 6 }}>Please fix the following:</div>
+          <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#ef4444', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {errors.map((e, i) => <li key={i}>{e}</li>)}
+          </ul>
+        </div>
+      )}
+
       {/* Vehicle & Technician Info */}
       <FormSectionHeader title="Vehicle & Technician Info" />
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px' }}>
-          <FormField label="Technician Name">
-            <input value={tech} onChange={e => setTech(e.target.value)} placeholder="Enter name" />
+          <FormField label="Technician Name *">
+            <input value={tech} onChange={e => { setTech(e.target.value); setErrors([]) }} placeholder="Enter name"
+              style={errors.length && !tech.trim() ? { borderColor: '#ef4444' } : {}} />
           </FormField>
-          <FormField label="Date">
-            <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+          <FormField label="Date *">
+            <input type="date" value={date} onChange={e => { setDate(e.target.value); setErrors([]) }}
+              style={errors.length && !date ? { borderColor: '#ef4444' } : {}} />
           </FormField>
           <FormField label="Serial #">
             <input value={eq.serial_number || ''} readOnly style={{ opacity: 0.6 }} />
@@ -106,8 +156,9 @@ export default function InspectionForm() {
           <FormField label="Year">
             <input value={eq.model_year || ''} readOnly style={{ opacity: 0.6 }} />
           </FormField>
-          <FormField label="Repair Order #">
-            <input value={ro} onChange={e => setRo(e.target.value)} placeholder="RO-XXXXX" />
+          <FormField label="Repair Order # *">
+            <input value={ro} onChange={e => { setRo(e.target.value); setErrors([]) }} placeholder="RO-XXXXX"
+              style={errors.length && !ro.trim() ? { borderColor: '#ef4444' } : {}} />
           </FormField>
           <FormField label="ADA Compliant">
             <ADARadio value={ada} onChange={setAda} />
@@ -183,14 +234,15 @@ export default function InspectionForm() {
       <FormSectionHeader title="Signatures" />
       <div className="card" style={{ marginBottom: '2rem' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px' }}>
-          <FormField label="Technician Signature">
-            <input value={techSig} onChange={e => setTechSig(e.target.value)} placeholder="Type full name as signature" />
+          <FormField label="Technician Signature *">
+            <input value={techSig} onChange={e => { setTechSig(e.target.value); setErrors([]) }} placeholder="Type full name as signature"
+              style={errors.length && !techSig.trim() ? { borderColor: '#ef4444' } : {}} />
           </FormField>
           <FormField label="Technician Date">
             <input type="date" value={techSigDate} onChange={e => setTechSigDate(e.target.value)} />
           </FormField>
           <FormField label="Supervisor Signature">
-            <input value={supSig} onChange={e => setSupSig(e.target.value)} placeholder="Type full name as signature" />
+            <input value={supSig} onChange={e => setSupSig(e.target.value)} placeholder="Type full name as signature (optional)" />
           </FormField>
           <FormField label="Supervisor Date">
             <input type="date" value={supSigDate} onChange={e => setSupSigDate(e.target.value)} />

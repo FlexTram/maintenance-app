@@ -20,6 +20,7 @@ export default function RepairForm() {
   const { user } = useAuth()
   const [eq, setEq]         = useState(null)
   const [saving, setSaving] = useState(false)
+  const [errors, setErrors] = useState([])
 
   const [tech, setTech]     = useState(user?.user_metadata?.full_name || '')
   const [date, setDate]     = useState(new Date().toISOString().split('T')[0])
@@ -36,27 +37,45 @@ export default function RepairForm() {
   useEffect(() => { db.equipment.get(id).then(setEq) }, [id])
 
   async function submit() {
-    if (!tech.trim()) { alert('Please enter technician name.'); return }
-    setSaving(true)
-    const formData = {
-      ro_number: ro, ada_compliant: ada,
-      ...repairs,
-      general_comments: generalComments,
-      tech_signature: techSig, tech_sig_date: techSigDate,
-      supervisor_signature: supSig, supervisor_sig_date: supSigDate,
-    }
-    const summary = REPAIR_SECTIONS
-      .filter(s => repairs[s.key].trim())
-      .map(s => `${s.label}: ${repairs[s.key]}`)
-      .join('; ')
+    const errs = []
+    if (!tech.trim()) errs.push('Technician Name is required')
+    if (!techSig.trim()) errs.push('Technician Signature is required')
+    const hasAnyRepair = REPAIR_SECTIONS.some(s => repairs[s.key].trim())
+    if (!hasAnyRepair) errs.push('At least one repair section must be filled out')
 
-    await saveRecord({
-      equipment_id: id, technician_name: tech, service_date: date,
-      status, inspection_notes: summary || 'Repair record submitted',
-      parts_replaced: [], created_by: user?.id,
-      record_type: 'repair', form_data: formData,
-    })
-    navigate(`/equipment/${id}`)
+    if (errs.length) {
+      setErrors(errs)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
+
+    setErrors([])
+    setSaving(true)
+    try {
+      const formData = {
+        ro_number: ro, ada_compliant: ada,
+        ...repairs,
+        general_comments: generalComments,
+        tech_signature: techSig, tech_sig_date: techSigDate,
+        supervisor_signature: supSig, supervisor_sig_date: supSigDate,
+      }
+      const summary = REPAIR_SECTIONS
+        .filter(s => repairs[s.key].trim())
+        .map(s => `${s.label}: ${repairs[s.key]}`)
+        .join('; ')
+
+      await saveRecord({
+        equipment_id: id, technician_name: tech, service_date: date,
+        status, inspection_notes: summary || 'Repair record submitted',
+        parts_replaced: [], created_by: user?.id,
+        record_type: 'repair', form_data: formData,
+      })
+      navigate(`/equipment/${id}`)
+    } catch (err) {
+      console.error('Failed to save repair:', err)
+      setErrors(['Failed to save — please try again'])
+      setSaving(false)
+    }
   }
 
   if (!eq) return <div className="empty">Loading…</div>
@@ -69,12 +88,22 @@ export default function RepairForm() {
         {eq.name}{eq.model ? ` — ${eq.model}` : ''} · {eq.serial_number || eq.qr_id}
       </div>
 
+      {errors.length > 0 && (
+        <div style={{ background: '#ef44441a', border: '1px solid #ef4444', borderRadius: 8, padding: '12px 16px', marginBottom: '1.5rem' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#ef4444', marginBottom: 6 }}>Please fix the following:</div>
+          <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#ef4444', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {errors.map((e, i) => <li key={i}>{e}</li>)}
+          </ul>
+        </div>
+      )}
+
       {/* Vehicle & Technician Info */}
       <FormSectionHeader title="Vehicle & Technician Info" />
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px' }}>
-          <FormField label="Technician Name">
-            <input value={tech} onChange={e => setTech(e.target.value)} placeholder="Enter name" />
+          <FormField label="Technician Name *">
+            <input value={tech} onChange={e => { setTech(e.target.value); setErrors([]) }} placeholder="Enter name"
+              style={errors.length && !tech.trim() ? { borderColor: '#ef4444' } : {}} />
           </FormField>
           <FormField label="Repair Date">
             <input type="date" value={date} onChange={e => setDate(e.target.value)} />
@@ -139,14 +168,15 @@ export default function RepairForm() {
       <FormSectionHeader title="Signatures" />
       <div className="card" style={{ marginBottom: '2rem' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px' }}>
-          <FormField label="Technician Signature">
-            <input value={techSig} onChange={e => setTechSig(e.target.value)} placeholder="Type full name as signature" />
+          <FormField label="Technician Signature *">
+            <input value={techSig} onChange={e => { setTechSig(e.target.value); setErrors([]) }} placeholder="Type full name as signature"
+              style={errors.length && !techSig.trim() ? { borderColor: '#ef4444' } : {}} />
           </FormField>
           <FormField label="Technician Date">
             <input type="date" value={techSigDate} onChange={e => setTechSigDate(e.target.value)} />
           </FormField>
           <FormField label="Supervisor Signature">
-            <input value={supSig} onChange={e => setSupSig(e.target.value)} placeholder="Type full name as signature" />
+            <input value={supSig} onChange={e => setSupSig(e.target.value)} placeholder="Type full name as signature (optional)" />
           </FormField>
           <FormField label="Supervisor Date">
             <input type="date" value={supSigDate} onChange={e => setSupSigDate(e.target.value)} />
