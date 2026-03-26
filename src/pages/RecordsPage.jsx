@@ -44,8 +44,16 @@ export default function RecordsPage() {
         return e.status === filter
       })
 
-  const activeRecords = records.filter(r => !r.voided)
-  const filteredRecords = filter === 'all' ? activeRecords : activeRecords.filter(r => r.status === filter)
+  // Filter timeline by equipment's CURRENT status, not the record's status at time of submission
+  const filteredTimeline = filter === 'all'
+    ? timeline
+    : timeline.filter(entry => {
+        const eq = equipment[entry.equipment_id]
+        if (!eq) return false
+        const eqStatus = eq.status || 'in_service'
+        if (filter === 'in_service') return eqStatus === 'in_service'
+        return eqStatus === filter
+      })
 
   const statusLabel = f =>
     f === 'all' ? 'All' : f === 'in_service' ? 'In service' : f === 'out_of_service' ? 'Out of service' : 'Pending'
@@ -125,10 +133,10 @@ export default function RecordsPage() {
       {/* Records view — merged timeline of maintenance records + status changes */}
       {!loading && view === 'records' && (
         <>
-          {timeline.length === 0 && (
-            <div className="empty">No records found.</div>
+          {filteredTimeline.length === 0 && (
+            <div className="empty">No {filter !== 'all' ? statusLabel(filter).toLowerCase() : ''} records found.</div>
           )}
-          {timeline.map((entry, i) => {
+          {filteredTimeline.map((entry, i) => {
             if (entry._type === 'status_change') {
               const eq = equipment[entry.equipment_id]
               const date = entry.changed_at
