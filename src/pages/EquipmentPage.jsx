@@ -26,7 +26,6 @@ export default function EquipmentPage() {
   const [selectedStatus,  setSelectedStatus]  = useState(null)
   const [statusNote,      setStatusNote]      = useState('')
   const [savingStatus,    setSavingStatus]    = useState(false)
-  const [showVoided,      setShowVoided]      = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -80,9 +79,8 @@ export default function EquipmentPage() {
     ))
   }
 
-  const visibleTimeline = showVoided
-    ? timeline
-    : timeline.filter(t => t._type !== 'record' || !t.voided)
+  const activeTimeline = timeline.filter(t => t._type !== 'record' || !t.voided)
+  const voidedRecords = timeline.filter(t => t._type === 'record' && t.voided)
 
   if (loading) return <div className="empty">Loading…</div>
   if (!eq)     return <div className="empty">Equipment not found.</div>
@@ -248,24 +246,35 @@ export default function EquipmentPage() {
       })}
 
       {/* History Timeline */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <div className="section-label" style={{ marginBottom: 0 }}>Maintenance history</div>
-        {timeline.some(t => t._type === 'record' && t.voided) && (
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text2)', cursor: 'pointer' }}>
-            <input type="checkbox" checked={showVoided} onChange={e => setShowVoided(e.target.checked)}
-              style={{ accentColor: 'var(--accent)', width: 14, height: 14 }} />
-            Show voided
-          </label>
-        )}
-      </div>
-      {visibleTimeline.length === 0 ? (
+      {/* Active Records */}
+      <div className="section-label">Active Records</div>
+      {activeTimeline.length === 0 ? (
         <div className="empty">No records yet for this equipment.</div>
       ) : (
-        visibleTimeline.map((entry, i) =>
+        activeTimeline.map((entry, i) =>
           entry._type === 'status_change'
             ? <StatusChangeCard key={`sc-${entry.id || i}`} change={entry} />
             : <RecordCard key={entry.localId || entry.id} record={entry} onVoid={handleVoid} />
         )
+      )}
+
+      {/* Voided Records */}
+      {voidedRecords.length > 0 && (
+        <details style={{ marginTop: '1.5rem' }}>
+          <summary style={{
+            fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
+            color: '#64748b', cursor: 'pointer', padding: '8px 0', listStyle: 'none',
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <span style={{ fontSize: 10, transition: 'transform 0.2s' }}>▶</span>
+            Voided Records ({voidedRecords.length})
+          </summary>
+          <div style={{ marginTop: 8 }}>
+            {voidedRecords.map(entry => (
+              <RecordCard key={entry.localId || entry.id} record={entry} onVoid={handleVoid} />
+            ))}
+          </div>
+        </details>
       )}
     </div>
   )
