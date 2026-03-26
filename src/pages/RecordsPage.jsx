@@ -3,6 +3,63 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { getAllRecords, getAllEquipment, getAllStatusChanges } from '../lib/sync'
 import { StatusBadge } from './HomePage'
 
+function StatusGroupCardFleet({ eq, changes, navigate, color, bg, latestDate, statusLabel, statusColor }) {
+  const [expanded, setExpanded] = useState(false)
+  const latest = changes[0]
+
+  return (
+    <div
+      onClick={(e) => { e.stopPropagation(); setExpanded(!expanded) }}
+      style={{
+        border: `1px solid ${color}40`, borderRadius: 8, padding: '8px 12px',
+        marginBottom: 8, background: bg, cursor: 'pointer',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 4, background: `${color}20`, color }}>
+            Status Change
+          </span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9' }}>{eq?.name || 'Unknown'}</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color }}>{statusLabel(latest.new_status)}</span>
+        </div>
+        <span style={{ fontSize: 10, color: '#64748b' }}>{expanded ? '▾' : '▸'} {changes.length > 1 ? `${changes.length}` : ''}</span>
+      </div>
+      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+        {latest.note && <span>{latest.note} · </span>}
+        {latest.changed_by_name && <span>{latest.changed_by_name} · </span>}
+        {latestDate}
+      </div>
+
+      {expanded && (
+        <div style={{ marginTop: 10, borderTop: `1px solid ${color}20`, paddingTop: 8 }}>
+          {changes.map((sc, i) => {
+            const d = sc.changed_at
+              ? new Date(sc.changed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              : ''
+            return (
+              <div key={sc.id || i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 12 }}>
+                <span style={{ color: statusColor(sc.old_status) }}>{statusLabel(sc.old_status)}</span>
+                <span style={{ color: '#64748b' }}>→</span>
+                <span style={{ color: statusColor(sc.new_status) }}>{statusLabel(sc.new_status)}</span>
+                {sc.note && <span style={{ color: '#64748b' }}>· {sc.note}</span>}
+                {sc.changed_by_name && <span style={{ color: '#475569' }}>· {sc.changed_by_name}</span>}
+                <span style={{ color: '#475569' }}>{d}</span>
+              </div>
+            )
+          })}
+          <div style={{ marginTop: 6 }}>
+            <span onClick={(e) => { e.stopPropagation(); navigate(`/equipment/${eq?.id}`) }}
+              style={{ fontSize: 12, color, cursor: 'pointer' }}>
+              View equipment →
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function RecordsPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -24,10 +81,21 @@ export default function RecordsPage() {
       setEquipList(equip)
       setRecords(recs)
 
-      // Build merged timeline for records view
+      // Build merged timeline — collapse status changes per equipment into group cards
+      const scByEquip = {}
+      for (const sc of statusChanges) {
+        if (!scByEquip[sc.equipment_id]) scByEquip[sc.equipment_id] = []
+        scByEquip[sc.equipment_id].push(sc)
+      }
+      const scGroups = Object.entries(scByEquip).map(([eqId, changes]) => ({
+        _type: 'status_group',
+        equipment_id: eqId,
+        _sortDate: changes[0]?.changed_at?.split('T')[0] || changes[0]?.changed_at,
+        changes,
+      }))
       const merged = [
         ...recs.filter(r => !r.voided).map(r => ({ ...r, _type: 'record', _sortDate: r.service_date })),
-        ...statusChanges.map(sc => ({ ...sc, _type: 'status_change', _sortDate: sc.changed_at?.split('T')[0] || sc.changed_at })),
+        ...scGroups,
       ].sort((a, b) => (b._sortDate || '').localeCompare(a._sortDate || ''))
       setTimeline(merged)
 
@@ -137,38 +205,22 @@ export default function RecordsPage() {
             <div className="empty">No {filter !== 'all' ? statusLabel(filter).toLowerCase() : ''} records found.</div>
           )}
           {filteredTimeline.map((entry, i) => {
-            if (entry._type === 'status_change') {
+            if (entry._type === 'status_group') {
               const eq = equipment[entry.equipment_id]
-              const date = entry.changed_at
-                ? new Date(entry.changed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                : 'Unknown date'
+              const latest = entry.changes[0]
               const statusLbl = s => (s || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
               const statusClr = s => s === 'in_service' ? '#4ade80' : s === 'out_of_service' ? '#f87171' : '#fb923c'
-              const badgeBg = entry.new_status === 'in_service' ? '#052e16'
-                : entry.new_status === 'out_of_service' ? '#450a0a' : '#431407'
+              const statusBgFn = s => s === 'in_service' ? '#052e16' : s === 'out_of_service' ? '#450a0a' : '#431407'
+              const color = statusClr(latest.new_status)
+              const bg = statusBgFn(latest.new_status)
+              const latestDate = latest.changed_at
+                ? new Date(latest.changed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                : ''
               return (
-                <div key={`sc-${entry.id || i}`}
-                  className="record"
-                  style={{ cursor: eq ? 'pointer' : 'default', borderColor: statusClr(entry.new_status) }}
-                  onClick={() => eq && navigate(`/equipment/${eq.id}`)}
-                >
-                  <div className="record-header">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 4, background: badgeBg, color: statusClr(entry.new_status) }}>
-                        Status Change
-                      </span>
-                      <span style={{ fontWeight: 500, fontSize: 14 }}>{eq?.name || 'Unknown'}</span>
-                    </div>
-                  </div>
-                  <div className="record-meta">
-                    <span style={{ color: statusClr(entry.old_status) }}>{statusLbl(entry.old_status)}</span>
-                    <span style={{ color: '#64748b', margin: '0 4px' }}>→</span>
-                    <span style={{ color: statusClr(entry.new_status) }}>{statusLbl(entry.new_status)}</span>
-                    <span style={{ marginLeft: 8 }}>{date}</span>
-                    {entry.changed_by_name && <span> · {entry.changed_by_name}</span>}
-                  </div>
-                  {entry.note && <div className="record-notes">{entry.note}</div>}
-                </div>
+                <StatusGroupCardFleet key={`sg-${entry.equipment_id}`}
+                  eq={eq} changes={entry.changes} navigate={navigate}
+                  color={color} bg={bg} latestDate={latestDate}
+                  statusLabel={statusLbl} statusColor={statusClr} />
               )
             }
 

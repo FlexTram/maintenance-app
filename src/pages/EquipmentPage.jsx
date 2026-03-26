@@ -79,8 +79,20 @@ export default function EquipmentPage() {
     ))
   }
 
-  const activeTimeline = timeline.filter(t => t._type !== 'record' || !t.voided)
+  // Build active timeline — collapse all status changes into one living card
+  const activeRecords = timeline.filter(t => t._type === 'record' && !t.voided)
+  const statusChanges = timeline.filter(t => t._type === 'status_change')
   const voidedRecords = timeline.filter(t => t._type === 'record' && t.voided)
+
+  // Build timeline with status changes collapsed into a single card
+  const activeTimeline = (() => {
+    if (statusChanges.length === 0) return activeRecords
+    // Insert one collapsed status card at the position of the most recent status change
+    const latestSc = statusChanges[0]
+    const statusCard = { _type: 'status_group', _sortDate: latestSc._sortDate, changes: statusChanges }
+    return [...activeRecords, statusCard]
+      .sort((a, b) => (b._sortDate || '').localeCompare(a._sortDate || ''))
+  })()
 
   if (loading) return <div className="empty">Loading…</div>
   if (!eq)     return <div className="empty">Equipment not found.</div>
@@ -252,8 +264,8 @@ export default function EquipmentPage() {
         <div className="empty">No records yet for this equipment.</div>
       ) : (
         activeTimeline.map((entry, i) =>
-          entry._type === 'status_change'
-            ? <StatusChangeCard key={`sc-${entry.id || i}`} change={entry} />
+          entry._type === 'status_group'
+            ? <StatusGroupCard key="status-group" changes={entry.changes} />
             : <RecordCard key={entry.localId || entry.id} record={entry} onVoid={handleVoid} />
         )
       )}
@@ -389,38 +401,62 @@ function RecordCard({ record: r, onVoid }) {
   )
 }
 
-function StatusChangeCard({ change: sc }) {
-  const date = sc.changed_at
-    ? new Date(sc.changed_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-    : 'Unknown date'
+function StatusGroupCard({ changes }) {
+  const [expanded, setExpanded] = useState(false)
 
   const statusLabel = s => (s || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
   const statusColor = s => s === 'in_service' ? '#4ade80' : s === 'out_of_service' ? '#f87171' : '#fb923c'
+  const statusBg = s => s === 'in_service' ? '#052e16' : s === 'out_of_service' ? '#450a0a' : '#431407'
 
-  const badgeColor = statusColor(sc.new_status)
-  const badgeBg = sc.new_status === 'in_service' ? '#052e16'
-    : sc.new_status === 'out_of_service' ? '#450a0a' : '#431407'
+  // Latest change determines the card's color
+  const latest = changes[0]
+  const color = statusColor(latest.new_status)
+  const bg = statusBg(latest.new_status)
+  const latestDate = latest.changed_at
+    ? new Date(latest.changed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : ''
 
   return (
-    <div className="record" style={{ borderColor: statusColor(sc.new_status) }}>
-      <div className="record-header">
+    <div
+      onClick={() => setExpanded(!expanded)}
+      style={{
+        border: `1px solid ${color}40`, borderRadius: 8, padding: '8px 12px',
+        marginBottom: 8, background: bg, cursor: 'pointer',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 4, background: badgeBg, color: badgeColor }}>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 4, background: `${color}20`, color }}>
             Status Change
           </span>
-          <span style={{ fontWeight: 500, fontSize: 14 }}>
-            <span style={{ color: statusColor(sc.old_status) }}>{statusLabel(sc.old_status)}</span>
-            <span style={{ color: '#64748b', margin: '0 6px' }}>→</span>
-            <span style={{ color: statusColor(sc.new_status) }}>{statusLabel(sc.new_status)}</span>
-          </span>
+          <span style={{ fontSize: 13, fontWeight: 600, color }}>{statusLabel(latest.new_status)}</span>
         </div>
+        <span style={{ fontSize: 10, color: '#64748b' }}>{expanded ? '▾' : '▸'} {changes.length > 1 ? `${changes.length} changes` : ''}</span>
       </div>
-      <div className="record-meta">
-        {date}
-        {sc.changed_by_name && <span> · {sc.changed_by_name}</span>}
+      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+        {latest.note && <span>{latest.note} · </span>}
+        {latest.changed_by_name && <span>{latest.changed_by_name} · </span>}
+        {latestDate}
       </div>
-      {sc.note && (
-        <div className="record-notes">{sc.note}</div>
+
+      {expanded && changes.length > 0 && (
+        <div style={{ marginTop: 10, borderTop: `1px solid ${color}20`, paddingTop: 8 }}>
+          {changes.map((sc, i) => {
+            const d = sc.changed_at
+              ? new Date(sc.changed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              : ''
+            return (
+              <div key={sc.id || i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 12 }}>
+                <span style={{ color: statusColor(sc.old_status) }}>{statusLabel(sc.old_status)}</span>
+                <span style={{ color: '#64748b' }}>→</span>
+                <span style={{ color: statusColor(sc.new_status) }}>{statusLabel(sc.new_status)}</span>
+                {sc.note && <span style={{ color: '#64748b' }}>· {sc.note}</span>}
+                {sc.changed_by_name && <span style={{ color: '#475569' }}>· {sc.changed_by_name}</span>}
+                <span style={{ color: '#475569' }}>{d}</span>
+              </div>
+            )
+          })}
+        </div>
       )}
     </div>
   )
