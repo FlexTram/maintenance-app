@@ -3,11 +3,15 @@
 ## Pending
 - [ ] **Operating Procedures links** — Need Google Drive links for Shipping, Receiving, Event Days, Tram Rodeo (currently show "Coming soon" in DocsPage)
 - [ ] **QR codes** — Print and label the fleet (TRAM-01 through TRAM-32, ADA-01, ADA-02)
-- [ ] **Accessibility pass** — Add aria-labels to stat cards, SVG icons, and interactive elements
 
 ## Nice to Have
 - [ ] **Code splitting** — Build warns about 823KB bundle; lazy-load InspectionForm/RepairForm/ScanPage to cut initial load
 - [ ] **Unused Supabase indexes** — 8 indexes flagged as unused; fine for now but revisit once app has more traffic
+
+## Completed — March 26 (Session 3)
+- [x] Accessibility pass — aria-hidden on decorative SVGs/emojis, role=button + tabIndex + keyboard Enter on all interactive divs, role=alert on form error banners, aria-expanded on accordions/toggles, tablist/tab roles on filter tabs, aria-labels on stat cards + camera feed + search input
+- [x] Security audit — tightened RLS policies (status_changes INSERT enforces changed_by=auth.uid(), equipment UPDATE policy, maintenance_records UPDATE for voiding), updated schema.sql to match live DB
+- [x] Disable form inputs while saving — prevent double-submit on forms
 
 ## Completed — March 26 (Session 2)
 - [x] Form validation — strict on InspectionForm (tech name, date, RO#, signature, at least one item), light on RepairForm (tech name, signature, one section)
