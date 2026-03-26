@@ -157,13 +157,13 @@ export default function RepairForm() {
       <div style={{ height: 80 }} />
 
       {/* Sticky submit bar */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--bg2)', borderTop: '2px solid #f5a623', padding: '12px 16px', display: 'flex', gap: 10, zIndex: 100, boxShadow: '0 -4px 20px rgba(0,0,0,0.4)' }}>
+      <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 680, background: 'var(--bg2)', borderTop: '2px solid #f5a623', padding: '12px 16px', display: 'flex', gap: 10, zIndex: 100, boxShadow: '0 -4px 20px rgba(0,0,0,0.4)', boxSizing: 'border-box' }}>
         <button onClick={() => navigate(`/equipment/${id}`)}
-          style={{ flex: 1, background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border)', fontSize: 14 }}>
+          style={{ flex: 1, padding: '10px 0', borderRadius: 8, background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border)', fontSize: 14 }}>
           Cancel
         </button>
         <button onClick={submit} disabled={saving}
-          style={{ flex: 2, background: '#f5a623', color: '#0f1117', border: 'none', fontSize: 15, fontWeight: 700, letterSpacing: '0.04em', opacity: saving ? 0.7 : 1 }}>
+          style={{ flex: 2, padding: '10px 0', borderRadius: 8, background: '#f5a623', color: '#0f1117', border: 'none', fontSize: 15, fontWeight: 700, letterSpacing: '0.04em', opacity: saving ? 0.7 : 1 }}>
           {saving ? 'Saving…' : 'Submit Repairs'}
         </button>
       </div>
