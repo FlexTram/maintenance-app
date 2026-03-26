@@ -25,9 +25,10 @@ export default function RecordsPage() {
     load()
   }, [])
 
+  const activeEquip = equipList.filter(e => e.status !== 'retired')
   const filteredEquip = filter === 'all'
-    ? equipList
-    : equipList.filter(e => {
+    ? activeEquip
+    : activeEquip.filter(e => {
         if (filter === 'in_service') return !e.status || e.status === 'in_service'
         return e.status === filter
       })

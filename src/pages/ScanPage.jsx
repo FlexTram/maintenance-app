@@ -96,12 +96,16 @@ export default function ScanPage() {
             <button className="primary" onClick={() => navigate(`/equipment/${equipment.id}`)}>
               View equipment record
             </button>
-            <button onClick={() => navigate(`/equipment/${equipment.id}/new/inspection`)}>
-              + Log Inspection
-            </button>
-            <button onClick={() => navigate(`/equipment/${equipment.id}/new/repair`)}>
-              + Log Repair
-            </button>
+            {equipment.status !== 'retired' && (
+              <>
+                <button onClick={() => navigate(`/equipment/${equipment.id}/new/inspection`)}>
+                  + Log Inspection
+                </button>
+                <button onClick={() => navigate(`/equipment/${equipment.id}/new/repair`)}>
+                  + Log Repair
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

@@ -17,6 +17,7 @@ export default function HomePage() {
 
       let inService = 0, outOfService = 0, pending = 0
       equip.forEach(e => {
+        if (e.status === 'retired') return // exclude retired from all counts
         if (e.status === 'out_of_service') outOfService++
         else if (e.status === 'pending') pending++
         else inService++

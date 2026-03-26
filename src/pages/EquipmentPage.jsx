@@ -108,8 +108,8 @@ export default function EquipmentPage() {
         )}
       </div>
 
-      {/* Status control */}
-      <div style={{ marginBottom: '1rem' }}>
+      {/* Status control — hidden for retired equipment */}
+      {eq.status !== 'retired' && <div style={{ marginBottom: '1rem' }}>
         {!showStatusPanel ? (
           <button
             onClick={() => { setShowStatusPanel(true); setSelectedStatus(eq.status || 'in_service') }}
@@ -178,16 +178,18 @@ export default function EquipmentPage() {
             </div>
           </div>
         )}
-      </div>
+      </div>}
 
-      <div className="stack" style={{ marginBottom: '1.5rem' }}>
-        <button className="primary" onClick={() => navigate(`/equipment/${id}/new/inspection`)}>
-          + Log Inspection
-        </button>
-        <button onClick={() => navigate(`/equipment/${id}/new/repair`)}>
-          + Log Repair
-        </button>
-      </div>
+      {eq.status !== 'retired' && (
+        <div className="stack" style={{ marginBottom: '1.5rem' }}>
+          <button className="primary" onClick={() => navigate(`/equipment/${id}/new/inspection`)}>
+            + Log Inspection
+          </button>
+          <button onClick={() => navigate(`/equipment/${id}/new/repair`)}>
+            + Log Repair
+          </button>
+        </div>
+      )}
 
       {/* Documents */}
       {['technical_drawing', 'service_procedure'].map(category => {
