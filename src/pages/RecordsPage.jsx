@@ -50,6 +50,13 @@ export default function RecordsPage() {
   const statusLabel = f =>
     f === 'all' ? 'All' : f === 'in_service' ? 'In service' : f === 'out_of_service' ? 'Out of service' : 'Pending'
 
+  const filterColors = {
+    all:            { bg: '#1e293b', color: '#f1f5f9', border: '#f1f5f9' },
+    in_service:     { bg: '#052e16', color: '#4ade80', border: '#4ade80' },
+    out_of_service: { bg: '#450a0a', color: '#f87171', border: '#f87171' },
+    pending:        { bg: '#431407', color: '#fb923c', border: '#fb923c' },
+  }
+
   return (
     <div className="page">
       <button className="back" onClick={() => navigate('/')}>← Home</button>
@@ -59,22 +66,27 @@ export default function RecordsPage() {
 
       {/* Filter tabs */}
       <div style={{ display: 'flex', gap: 6, marginBottom: '1rem', flexWrap: 'wrap' }}>
-        {['all', 'in_service', 'out_of_service', 'pending'].map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            style={{
-              width: 'auto',
-              padding: '6px 14px',
-              fontSize: 13,
-              background: filter === f ? 'var(--accent)' : 'var(--bg)',
-              color:      filter === f ? 'var(--bg)'     : 'var(--text2)',
-              borderColor: filter === f ? 'var(--accent)' : 'var(--border)',
-            }}
-          >
-            {statusLabel(f)}
-          </button>
-        ))}
+        {['all', 'in_service', 'out_of_service', 'pending'].map(f => {
+          const active = filter === f
+          const c = filterColors[f]
+          return (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              style={{
+                width: 'auto',
+                padding: '6px 14px',
+                fontSize: 13,
+                background: active ? c.bg : 'var(--bg)',
+                color:      active ? c.color : 'var(--text2)',
+                borderColor: active ? c.border : 'var(--border)',
+                fontWeight: active ? 600 : 400,
+              }}
+            >
+              {statusLabel(f)}
+            </button>
+          )
+        })}
       </div>
 
       {loading && <div className="empty">Loading…</div>}
