@@ -7,3 +7,6 @@ dist/
 .vercel
 .mcp.json
 .claude/
+
+# PDFs stored in Supabase Storage
+*.pdf

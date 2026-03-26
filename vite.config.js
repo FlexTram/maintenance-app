@@ -40,6 +40,15 @@ export default defineConfig({
               expiration: { maxEntries: 200, maxAgeSeconds: 7 * 24 * 60 * 60 },
               networkTimeoutSeconds: 5,
             }
+          },
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/public\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'supabase-storage-docs',
+              expiration: { maxEntries: 50, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            }
           }
         ]
       }

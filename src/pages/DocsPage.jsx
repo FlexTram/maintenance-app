@@ -6,13 +6,11 @@ const DOCS = {
     title: 'Master Ops Doc',
     url: 'https://docs.google.com/document/d/1MGR67rlNZeCjyFj4tUyvzjliYdWEo1MOI8Q6gWQm41s/edit?usp=drive_link',
   },
-  approved_tow_vehicles: {
-    title: 'Approved Tow Vehicles',
-    url: 'https://drive.google.com/file/d/19TqX2YZZ1eWnKg88UeROQDAdYvaFJ_zZ/view?usp=drive_link',
-  },
-  technical_drawings: [
-    { title: 'Model SB Standard', url: 'https://drive.google.com/file/d/1ZQw-n5XnmILVMTgnjKCGqqDgWtbV2j86/view?usp=drive_link' },
-    { title: 'Model SB Standard Wiring Diagram', url: 'https://drive.google.com/file/d/1uFPImoT0-kifxrK91ocsDGpAIgrhFTJg/view?usp=drive_link' },
+  technical_documents: [
+    { title: 'Model SB Standard', url: 'https://lpsumqpbvhphtodffmeo.supabase.co/storage/v1/object/public/documents/FlexTram_Technical_Drawings_Dimensions_app_ref.pdf' },
+    { title: 'Model SB Standard Wiring Diagram', url: 'https://lpsumqpbvhphtodffmeo.supabase.co/storage/v1/object/public/documents/flextram_wiring_diagram_app_ref.pdf' },
+    { title: 'Approved Tow Vehicles', url: 'https://lpsumqpbvhphtodffmeo.supabase.co/storage/v1/object/public/documents/FlexTram_Tow_Vehicles_Maintenance_app_ref.pdf' },
+    { title: 'Trailer Loading', url: 'https://lpsumqpbvhphtodffmeo.supabase.co/storage/v1/object/public/documents/trailer_load_plan_app_ref.pdf' },
   ],
   operating_procedures: [
     { title: 'Shipping',   url: '#' },
@@ -64,30 +62,11 @@ export default function DocsPage() {
             width: '100%', background: 'transparent', color: '#f59e0b',
             border: '1px solid #f59e0b', borderRadius: 10, padding: '12px 16px',
             fontSize: 14, fontWeight: 600, cursor: 'pointer', textDecoration: 'none',
-            marginBottom: 10, boxSizing: 'border-box',
-          }}
-        >
-          <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            📄 {DOCS.master_ops_doc.title}
-          </span>
-          <span style={{ fontSize: 13, opacity: 0.7 }}>Open →</span>
-        </a>
-
-        {/* Approved Tow Vehicles — direct link button */}
-        <a
-          href={DOCS.approved_tow_vehicles.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            width: '100%', background: 'transparent', color: '#f59e0b',
-            border: '1px solid #f59e0b', borderRadius: 10, padding: '12px 16px',
-            fontSize: 14, fontWeight: 600, cursor: 'pointer', textDecoration: 'none',
             marginBottom: 24, boxSizing: 'border-box',
           }}
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            📄 {DOCS.approved_tow_vehicles.title}
+            📄 {DOCS.master_ops_doc.title}
           </span>
           <span style={{ fontSize: 13, opacity: 0.7 }}>Open →</span>
         </a>
@@ -97,13 +76,13 @@ export default function DocsPage() {
           Technical Reference
         </div>
 
-        {/* Technical Drawings — dropdown */}
+        {/* Technical Documents — dropdown */}
         <Accordion
-          label="Technical Drawings"
+          label="Technical Documents"
           icon="📐"
-          items={DOCS.technical_drawings}
-          isOpen={openSection === 'technical_drawings'}
-          onToggle={() => toggleSection('technical_drawings')}
+          items={DOCS.technical_documents}
+          isOpen={openSection === 'technical_documents'}
+          onToggle={() => toggleSection('technical_documents')}
         />
 
         {/* Operating Procedures — dropdown */}

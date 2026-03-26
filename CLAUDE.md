@@ -20,6 +20,7 @@ Located at: `~/Desktop/Maintenance App Project`
 - **Project URL:** https://lpsumqpbvhphtodffmeo.supabase.co
 - **Plan:** Pro ($25/mo) — no pausing, priority support
 - **Auth providers enabled:** Google OAuth, Email
+- **Storage:** Public `documents` bucket for static fleet PDFs (technical drawings, wiring diagrams, tow vehicles, trailer loading)
 - **Schema:** see `supabase-schema.sql`
 - **MCP:** Configured via `.mcp.json` (HTTP/OAuth to `https://mcp.supabase.com/mcp`). Authenticated via CLI (`claude mcp add`). Falls back to Management API via curl with access token.
 - **Management API (fallback):** `curl -H "Authorization: Bearer $TOKEN" https://api.supabase.com/v1/projects/lpsumqpbvhphtodffmeo/database/query -d '{"query":"SQL"}'`
@@ -77,12 +78,20 @@ Full audit trail of every status change: `id`, `equipment_id`, `old_status`, `ne
 ### documents table
 `id`, `equipment_id` (NULL = fleet-wide), `title`, `url`, `category`, `subcategory`, `created_at`
 
-## Documents (hardcoded in DocsPage — no Supabase dependency)
+## Documents
+Static PDFs served from **Supabase Storage** (public `documents` bucket, CacheFirst PWA caching for offline access). Living/collaborative docs stay on Google Drive.
+
+### Google Drive (living docs)
 - **Master Ops Doc**: https://docs.google.com/document/d/1MGR67rlNZeCjyFj4tUyvzjliYdWEo1MOI8Q6gWQm41s/edit?usp=drive_link
-- **Approved Tow Vehicles**: https://drive.google.com/file/d/19TqX2YZZ1eWnKg88UeROQDAdYvaFJ_zZ/view?usp=drive_link
-- **Technical Drawings > Model SB Standard**: https://drive.google.com/file/d/1ZQw-n5XnmILVMTgnjKCGqqDgWtbV2j86/view?usp=drive_link
-- **Technical Drawings > Model SB Standard Wiring Diagram**: https://drive.google.com/file/d/1uFPImoT0-kifxrK91ocsDGpAIgrhFTJg/view?usp=drive_link
 - **Operating Procedures** (Shipping, Receiving, Event Days, Tram Rodeo): links TBD — currently show "Coming soon"
+
+### Supabase Storage (static PDFs — cached offline)
+- **Approved Tow Vehicles**: `documents/FlexTram_Tow_Vehicles_Maintenance_app_ref.pdf`
+- **Trailer Loading**: `documents/trailer_load_plan_app_ref.pdf`
+- **Technical Drawings > Model SB Standard**: `documents/FlexTram_Technical_Drawings_Dimensions_app_ref.pdf`
+- **Technical Drawings > Wiring Diagram**: `documents/flextram_wiring_diagram_app_ref.pdf`
+
+All 4 static docs are also in the `documents` table for dynamic queries from EquipmentPage/HomePage.
 
 ## Pending Tasks
 - **Operating Procedures links** — need G Drive links for Shipping, Receiving, Event Days, Tram Rodeo

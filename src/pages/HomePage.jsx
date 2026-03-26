@@ -2,14 +2,12 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { getAllRecords, getAllEquipment } from '../lib/sync'
-import { supabase } from '../lib/supabase'
 
 export default function HomePage() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const [recent,    setRecent]    = useState([])
   const [stats,     setStats]     = useState({ inService: 0, outOfService: 0, pending: 0 })
-  const [globalDocs, setGlobalDocs] = useState([])
 
   useEffect(() => {
     async function load() {
@@ -36,12 +34,6 @@ export default function HomePage() {
       setRecent(recentEquip)
     }
     load()
-    if (user) {
-      supabase.from('documents').select('*').is('equipment_id', null).then(({ data, error }) => {
-        if (error) console.error('docs fetch error:', error)
-        if (data) setGlobalDocs(data)
-      })
-    }
   }, [user])
 
   const firstName = user?.user_metadata?.full_name?.split(' ')[0] || 'there'
@@ -131,22 +123,6 @@ export default function HomePage() {
         >
           Quick Document Reference
         </button>
-
-        {globalDocs.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
-            {globalDocs.map(doc => (
-              <a
-                key={doc.id}
-                href={doc.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ background: 'transparent', color: '#f59e0b', border: '1px solid #f59e0b', borderRadius: 10, padding: '9px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, lineHeight: 1.3 }}
-              >
-                📄 {doc.title}
-              </a>
-            ))}
-          </div>
-        )}
 
         {recent.length > 0 && (
           <>
