@@ -25,6 +25,8 @@
 - [x] Status change cards show changed-by user name
 - [x] Icons on homepage nav buttons (clipboard for records, document for docs)
 - [x] Unified card design across timeline, then evolved to compact living status cards
+- [x] Fixed QR camera not triggering on mobile (race condition with DOM rendering)
+- [x] Fleet equipment list sorted: ADA trams first, then numeric order
 
 ## Completed — March 25 (Session 1)
 - [x] Moved static docs from Google Drive to Supabase Storage with offline caching
