@@ -104,13 +104,25 @@ export default function RecordsPage() {
     load()
   }, [])
 
+  // Sort: ADA trams first, then numerically by tram number
+  function sortEquipment(list) {
+    return [...list].sort((a, b) => {
+      const aIsAda = a.tram_number?.startsWith('ADA') ? 0 : 1
+      const bIsAda = b.tram_number?.startsWith('ADA') ? 0 : 1
+      if (aIsAda !== bIsAda) return aIsAda - bIsAda
+      const aNum = parseInt(a.tram_number?.replace(/\D/g, '') || '999')
+      const bNum = parseInt(b.tram_number?.replace(/\D/g, '') || '999')
+      return aNum - bNum
+    })
+  }
+
   const activeEquip = equipList.filter(e => e.status !== 'retired')
-  const filteredEquip = filter === 'all'
+  const filteredEquip = sortEquipment(filter === 'all'
     ? activeEquip
     : activeEquip.filter(e => {
         if (filter === 'in_service') return !e.status || e.status === 'in_service'
         return e.status === filter
-      })
+      }))
 
   // Filter timeline by equipment's CURRENT status, not the record's status at time of submission
   const filteredTimeline = filter === 'all'
