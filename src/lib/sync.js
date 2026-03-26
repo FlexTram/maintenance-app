@@ -38,28 +38,38 @@ export async function getEquipmentByQrId(qrId) {
  * Used by the manual entry fallback on the scan page.
  */
 export async function getEquipmentByIdentifier(value) {
-  const v = value.trim()
+  const v = value.trim().toLowerCase()
 
-  // Try local cache across all three fields
+  // Try local cache — exact match first, then partial
   const all = await db.equipment.toArray()
-  const match = all.find(e =>
-    e.tram_number?.toLowerCase() === v.toLowerCase() ||
-    e.serial_number?.toLowerCase() === v.toLowerCase() ||
-    e.qr_id?.toLowerCase() === v.toLowerCase()
+  const exact = all.find(e =>
+    e.tram_number?.toLowerCase() === v ||
+    e.serial_number?.toLowerCase() === v ||
+    e.qr_id?.toLowerCase() === v ||
+    e.name?.toLowerCase() === v
   )
-  if (match) return match
+  if (exact) return [exact]
 
-  // Fall back to Supabase
+  // Partial match on local cache
+  const partial = all.filter(e =>
+    e.tram_number?.toLowerCase().includes(v) ||
+    e.serial_number?.toLowerCase().includes(v) ||
+    e.qr_id?.toLowerCase().includes(v) ||
+    e.name?.toLowerCase().includes(v)
+  )
+  if (partial.length) return partial
+
+  // Fall back to Supabase — partial match with ilike %value%
+  const pattern = `%${v}%`
   const { data, error } = await supabase
     .from('equipment')
     .select('*')
-    .or(`tram_number.ilike.${v},serial_number.ilike.${v},qr_id.ilike.${v}`)
-    .limit(1)
-    .single()
+    .or(`tram_number.ilike.${pattern},serial_number.ilike.${pattern},qr_id.ilike.${pattern},name.ilike.${pattern}`)
+    .limit(10)
 
   if (error) { console.error('[sync] getEquipmentByIdentifier failed:', error.message); return null }
-  if (!data) return null
-  await db.equipment.put(data)
+  if (!data?.length) return null
+  for (const eq of data) await db.equipment.put(eq)
   return data
 }
 

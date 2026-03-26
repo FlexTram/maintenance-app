@@ -10,6 +10,7 @@ export default function ScanPage() {
   const [status,   setStatus]   = useState('idle') // idle | scanning | found | error
   const [message,  setMessage]  = useState('')
   const [equipment, setEquipment] = useState(null)
+  const [results, setResults]    = useState([])
 
   useEffect(() => {
     startScanner()
@@ -61,6 +62,7 @@ export default function ScanPage() {
     setStatus('idle')
     setMessage('')
     setEquipment(null)
+    setResults([])
     startScanner()
   }
 
@@ -82,7 +84,28 @@ export default function ScanPage() {
         </p>
       )}
 
-      {/* Result */}
+      {/* Multiple results — select one */}
+      {status === 'found' && !equipment && results.length > 1 && (
+        <div>
+          <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 10 }}>
+            {results.length} results found — select one:
+          </div>
+          {results.map(eq => (
+            <div key={eq.id} className="record" style={{ cursor: 'pointer' }}
+              onClick={() => { setEquipment(eq); setResults([]) }}>
+              <div className="record-header">
+                <span style={{ fontWeight: 500, fontSize: 14 }}>
+                  {eq.name}{eq.model ? ` — ${eq.model}` : ''}
+                </span>
+                <StatusBadge status={eq.status || 'in_service'} />
+              </div>
+              <div className="record-meta">{eq.serial_number || eq.qr_id}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Single result with action buttons */}
       {status === 'found' && equipment && (
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -120,9 +143,15 @@ export default function ScanPage() {
       {/* Manual entry fallback */}
       <div style={{ marginTop: '1.5rem' }}>
         <div className="section-label">Can't scan?</div>
-        <ManualEntry onFound={(eq) => {
+        <ManualEntry onFound={(eqList) => {
           setStatus('found')
-          setEquipment(eq)
+          if (eqList.length === 1) {
+            setEquipment(eqList[0])
+            setResults([])
+          } else {
+            setEquipment(null)
+            setResults(eqList)
+          }
         }} onError={(msg) => {
           setStatus('error')
           setMessage(msg)
@@ -138,11 +167,11 @@ function ManualEntry({ onFound, onError }) {
   async function handleSubmit(e) {
     e.preventDefault()
     if (!value.trim()) return
-    const eq = await getEquipmentByIdentifier(value.trim())
-    if (eq) {
-      onFound(eq)
+    const results = await getEquipmentByIdentifier(value.trim())
+    if (results && results.length) {
+      onFound(results)
     } else {
-      onError(`No tram found for "${value.trim()}". Try a tram number, serial number, or QR ID.`)
+      onError(`No tram found for "${value.trim()}". Try a tram number, serial number, name, or QR ID.`)
     }
   }
 
