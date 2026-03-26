@@ -23,6 +23,10 @@ create table if not exists equipment (
   manufacturer    text,                        -- e.g. "FlexTram / OCI"
   model           text,                        -- e.g. "SB Standard"
   canopy_details  text,                        -- e.g. '3" TOP', 'Light Blue Top'
+  status          text check (status in ('in_service', 'out_of_service', 'pending', 'retired')),
+  status_note     text,
+  status_updated_at timestamptz,
+  status_updated_by uuid references auth.users(id),
   created_at      timestamptz default now()
 );
 
@@ -42,7 +46,11 @@ create table if not exists maintenance_records (
   record_type     text check (record_type in ('inspection', 'repair')),
   form_data       jsonb,                   -- full structured form payload
   synced_at       timestamptz default now(),
-  created_by      uuid references auth.users(id)
+  created_by      uuid references auth.users(id),
+  voided          boolean default false,
+  voided_reason   text,
+  voided_at       timestamptz,
+  voided_by       uuid references auth.users(id)
 );
 
 -- ── Indexes for common queries ────────────────────────────────
@@ -71,10 +79,11 @@ create policy "Authenticated users can insert records"
   on maintenance_records for insert
   with check (auth.role() = 'authenticated');
 
--- Users can only update their own records
-create policy "Users can update their own records"
+-- Any authenticated user can update records (e.g. void)
+create policy "Authenticated users can update records"
   on maintenance_records for update
-  using (created_by = auth.uid());
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
 
 -- ── Status changes table (audit trail) ──────────────────────
 create table if not exists status_changes (
@@ -84,6 +93,7 @@ create table if not exists status_changes (
   new_status   text,
   note         text,
   changed_by   uuid references auth.users(id),
+  changed_by_name text,
   changed_at   timestamptz default now()
 );
 
@@ -95,9 +105,15 @@ create policy "Authenticated users can view status changes"
   on status_changes for select
   using (auth.uid() is not null);
 
-create policy "Authenticated users can insert status changes"
+-- Users can only insert status changes attributed to themselves
+create policy "Users can only insert status changes as themselves"
   on status_changes for insert
-  with check (auth.uid() is not null);
+  with check (changed_by = auth.uid());
+
+-- Authenticated users can update equipment status
+create policy "Authenticated users can update equipment status"
+  on equipment for update
+  using (auth.uid() is not null);
 
 -- ── Equipment delete protection ─────────────────────────────
 -- Prevent any user from deleting equipment records
