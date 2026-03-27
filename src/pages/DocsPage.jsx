@@ -15,8 +15,8 @@ const DOCS = {
     { title: 'Trailer Loading', url: `${STORAGE_BASE}/trailer_load_plan_app_ref.pdf` },
   ],
   operating_procedures: [
-    { title: 'Shipping',   url: 'https://docs.google.com/document/d/1KPwzJ-0Hyd6gpnggBzDLff5xXMoFwI2J/edit?usp=sharing&ouid=107508318059145291753&rtpof=true&sd=true' },
-    { title: 'Receiving',  url: 'https://docs.google.com/document/d/1pG6Mz9DViKkxAXbFUlqcOMuVlqEi4hz3/edit?usp=sharing&ouid=107508318059145291753&rtpof=true&sd=true' },
+    { title: 'Shipping / Load Out',   url: 'https://docs.google.com/document/d/1KPwzJ-0Hyd6gpnggBzDLff5xXMoFwI2J/edit?usp=sharing&ouid=107508318059145291753&rtpof=true&sd=true' },
+    { title: 'Receiving / Load In',  url: 'https://docs.google.com/document/d/1pG6Mz9DViKkxAXbFUlqcOMuVlqEi4hz3/edit?usp=sharing&ouid=107508318059145291753&rtpof=true&sd=true' },
     { title: 'Event Days', url: 'https://docs.google.com/document/d/1TCgNANjoB4LCde89Ui0L21gRdYCUSHFK/edit?usp=sharing&ouid=107508318059145291753&rtpof=true&sd=true' },
     { title: 'Tram Rodeo', url: 'https://drive.google.com/file/d/1wwLDRyvtSnDccY8h7b7wWPqo9bnsEPcW/view?usp=sharing' },
   ],
