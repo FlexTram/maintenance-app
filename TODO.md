@@ -5,8 +5,8 @@
 - [ ] **QR codes** — Print and label the fleet (TRAM-01 through TRAM-32, ADA-01, ADA-02)
 
 ## Nice to Have
-- [ ] **Code splitting** — Build warns about 823KB bundle; lazy-load InspectionForm/RepairForm/ScanPage to cut initial load
-- [ ] **Unused Supabase indexes** — 8 indexes flagged as unused; fine for now but revisit once app has more traffic
+- [x] **Code splitting** — Lazy-loaded 7 pages; main bundle 823KB → 452KB (45% smaller)
+- [x] **Supabase performance advisors** — Fixed 2 RLS policies (select-wrapped auth calls), added missing voided_by index. Unused indexes intentionally kept.
 
 ## Completed — March 26 (Session 3)
 - [x] Accessibility pass — aria-hidden on decorative SVGs/emojis, role=button + tabIndex + keyboard Enter on all interactive divs, role=alert on form error banners, aria-expanded on accordions/toggles, tablist/tab roles on filter tabs, aria-labels on stat cards + camera feed + search input
