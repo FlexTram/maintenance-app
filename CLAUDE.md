@@ -82,8 +82,8 @@ Full audit trail of every status change: `id`, `equipment_id`, `old_status`, `ne
 Static PDFs served from **Supabase Storage** (public `documents` bucket, CacheFirst PWA caching for offline access). Living/collaborative docs stay on Google Drive.
 
 ### Google Drive (living docs)
-- **Master Ops Doc**: https://docs.google.com/document/d/1MGR67rlNZeCjyFj4tUyvzjliYdWEo1MOI8Q6gWQm41s/edit?usp=drive_link
-- **Operating Procedures** (Shipping, Receiving, Event Days, Tram Rodeo): links TBD — currently show "Coming soon"
+- **Master Ops Doc**: https://docs.google.com/document/d/1UxVvA_UKqpgSMCvBaHvL5mZphRSVgZc0/edit?usp=sharing&ouid=107508318059145291753&rtpof=true&sd=true
+- **Operating Procedures**: Shipping, Receiving, Event Days (Google Docs), Tram Rodeo (Google Drive PDF)
 
 ### Supabase Storage (static PDFs — cached offline)
 - **Approved Tow Vehicles**: `documents/FlexTram_Tow_Vehicles_Maintenance_app_ref.pdf`
@@ -94,7 +94,7 @@ Static PDFs served from **Supabase Storage** (public `documents` bucket, CacheFi
 All 4 static docs are also in the `documents` table for dynamic queries from EquipmentPage/HomePage.
 
 ## Pending Tasks
-- **Operating Procedures links** — need G Drive links for Shipping, Receiving, Event Days, Tram Rodeo
+- ~~Operating Procedures links~~ ✅ All 4 linked
 - **QR codes** — print and label fleet once ready
 
 ## Key Files

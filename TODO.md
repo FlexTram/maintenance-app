@@ -1,7 +1,7 @@
 # Maintenance App — TODO (Updated March 26, 2026)
 
 ## Pending
-- [ ] **Operating Procedures links** — Need Google Drive links for Shipping, Receiving, Event Days, Tram Rodeo (currently show "Coming soon" in DocsPage)
+- [x] **Operating Procedures links** — All 4 linked: Shipping, Receiving, Event Days, Tram Rodeo
 - [ ] **QR codes** — Print and label the fleet (TRAM-01 through TRAM-32, ADA-01, ADA-02)
 
 ## Nice to Have
