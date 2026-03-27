@@ -83,7 +83,7 @@ Static PDFs served from **Supabase Storage** (public `documents` bucket, CacheFi
 
 ### Google Drive (living docs)
 - **Master Ops Doc**: https://docs.google.com/document/d/1UxVvA_UKqpgSMCvBaHvL5mZphRSVgZc0/edit?usp=sharing&ouid=107508318059145291753&rtpof=true&sd=true
-- **Operating Procedures**: Shipping, Receiving, Event Days (Google Docs), Tram Rodeo (Google Drive PDF)
+- **Operating Procedures**: Shipping / Load Out, Receiving / Load In, Event Days (Google Docs), Tram Rodeo (Google Drive PDF)
 
 ### Supabase Storage (static PDFs — cached offline)
 - **Approved Tow Vehicles**: `documents/FlexTram_Tow_Vehicles_Maintenance_app_ref.pdf`
@@ -93,9 +93,20 @@ Static PDFs served from **Supabase Storage** (public `documents` bucket, CacheFi
 
 All 4 static docs are also in the `documents` table for dynamic queries from EquipmentPage/HomePage.
 
+## Current Status
+App is **deployed to production** and in field testing with technicians. All core features complete.
+
 ## Pending Tasks
-- ~~Operating Procedures links~~ ✅ All 4 linked
-- **QR codes** — print and label fleet once ready
+- **QR codes** — print and label fleet once ready (waiting on field testing feedback)
+- **Supabase MCP in VS Code** — OAuth works in CLI but VS Code extension needs a new session to pick up MCP tools. Start a new conversation if MCP tools aren't available.
+
+## Completed (Session 4 — March 27)
+- ✅ All 4 Operating Procedure links wired up (Shipping / Load Out, Receiving / Load In, Event Days, Tram Rodeo)
+- ✅ Master Ops Doc URL updated
+- ✅ Code splitting — lazy-loaded 7 pages, main bundle 823KB → 452KB (45% smaller)
+- ✅ Supabase performance fixes — RLS policies optimized, missing index added
+- ✅ Supabase MCP authenticated via CLI OAuth
+- ✅ CLAUDE.md fully updated with infra notes, Node v8 gotcha, MCP setup
 
 ## Key Files
 - `src/lib/supabase.js` – Supabase client
