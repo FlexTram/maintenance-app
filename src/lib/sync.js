@@ -185,6 +185,9 @@ export async function syncRecordsFromSupabase() {
     const existing = await db.records.where('id').equals(record.id).first()
     if (!existing) {
       await db.records.add({ ...record, synced: 1 })
+    } else if (existing.synced === 1) {
+      // Refresh synced records so edits/voids propagate across devices
+      await db.records.update(existing.localId, { ...record, synced: 1 })
     }
   }
 }
@@ -215,6 +218,41 @@ export async function voidRecord(localId, supabaseId, reason, userId) {
 
     if (error) {
       console.error('[sync] Failed to void record in Supabase:', error.message)
+    }
+  }
+}
+
+// ── Edit Records ─────────────────────────────────────────────
+
+/**
+ * Edit a maintenance record. Updates the record fields and stamps
+ * who edited and when, following the same offline-first pattern as voidRecord.
+ */
+export async function editRecord(localId, supabaseId, updatedFields, userId, userName) {
+  const now = new Date().toISOString()
+
+  const payload = {
+    ...updatedFields,
+    edited_by: userId,
+    edited_at: now,
+    edited_by_name: userName,
+  }
+
+  // Update locally first (offline-safe)
+  await db.records.update(localId, payload)
+
+  // Sync to Supabase if online and record has a Supabase ID
+  if (navigator.onLine && supabaseId) {
+    // Strip any IndexedDB-only fields before sending to Supabase
+    const { localId: _lid, synced: _s, created_at: _ca, ...supabasePayload } = payload
+
+    const { error } = await supabase
+      .from('maintenance_records')
+      .update(supabasePayload)
+      .eq('id', supabaseId)
+
+    if (error) {
+      console.error('[sync] Failed to edit record in Supabase:', error.message)
     }
   }
 }

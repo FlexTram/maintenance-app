@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
-import { saveRecord } from '../lib/sync'
+import { saveRecord, editRecord } from '../lib/sync'
 import { useAuth } from '../lib/auth'
 import { FormSectionHeader, FormField } from './InspectionForm'
 
@@ -15,10 +15,12 @@ const REPAIR_SECTIONS = [
 ]
 
 export default function RepairForm() {
-  const { id }   = useParams()
+  const { id, recordId } = useParams()
+  const isEditMode = !!recordId
   const navigate = useNavigate()
   const { user } = useAuth()
   const [eq, setEq]         = useState(null)
+  const [existingRecord, setExistingRecord] = useState(null)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState([])
 
@@ -35,6 +37,28 @@ export default function RepairForm() {
   const [supSigDate, setSupSigDate]   = useState('')
 
   useEffect(() => { db.equipment.get(id).then(setEq) }, [id])
+
+  // Pre-populate form when editing an existing record
+  useEffect(() => {
+    if (!recordId) return
+    db.records.where('localId').equals(Number(recordId)).first().then(record => {
+      if (!record) return
+      setExistingRecord(record)
+      setTech(record.technician_name || '')
+      setDate(record.service_date || '')
+      setRo(record.form_data?.ro_number || '')
+      setAda(record.form_data?.ada_compliant || '')
+      setStatus(record.status || 'in_service')
+      setGeneralComments(record.form_data?.general_comments || '')
+      setTechSig(record.form_data?.tech_signature || '')
+      setTechSigDate(record.form_data?.tech_sig_date || '')
+      setSupSig(record.form_data?.supervisor_signature || '')
+      setSupSigDate(record.form_data?.supervisor_sig_date || '')
+      const repairData = {}
+      REPAIR_SECTIONS.forEach(s => { repairData[s.key] = record.form_data?.[s.key] || '' })
+      setRepairs(repairData)
+    })
+  }, [recordId])
 
   function formatRO(val) {
     const raw = val.replace(/[^a-zA-Z0-9-]/g, '').toUpperCase()
@@ -73,12 +97,24 @@ export default function RepairForm() {
         .map(s => `${s.label}: ${repairs[s.key]}`)
         .join('; ')
 
-      await saveRecord({
-        equipment_id: id, technician_name: tech, service_date: date,
-        status, inspection_notes: summary || 'Repair record submitted',
-        parts_replaced: [], created_by: user?.id,
-        record_type: 'repair', form_data: formData,
-      })
+      if (isEditMode && existingRecord) {
+        await editRecord(
+          existingRecord.localId, existingRecord.id,
+          {
+            technician_name: tech, service_date: date, status,
+            inspection_notes: summary || 'Repair record submitted',
+            form_data: formData,
+          },
+          user?.id, user?.user_metadata?.full_name
+        )
+      } else {
+        await saveRecord({
+          equipment_id: id, technician_name: tech, service_date: date,
+          status, inspection_notes: summary || 'Repair record submitted',
+          parts_replaced: [], created_by: user?.id,
+          record_type: 'repair', form_data: formData,
+        })
+      }
       navigate(`/equipment/${id}`)
     } catch (err) {
       console.error('Failed to save repair:', err)
@@ -92,7 +128,7 @@ export default function RepairForm() {
   return (
     <div className="page">
       <button className="back" onClick={() => navigate(`/equipment/${id}`)}>← Back</button>
-      <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 2 }}>Repair Record</div>
+      <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 2 }}>{isEditMode ? 'Edit Repair Record' : 'Repair Record'}</div>
       <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: '1.5rem' }}>
         {eq.name}{eq.model ? ` — ${eq.model}` : ''} · {eq.serial_number || eq.qr_id}
       </div>
@@ -203,7 +239,7 @@ export default function RepairForm() {
         </button>
         <button onClick={submit} disabled={saving}
           style={{ flex: 2, padding: '10px 0', borderRadius: 8, background: '#f5a623', color: '#0f1117', border: 'none', fontSize: 15, fontWeight: 700, letterSpacing: '0.04em', opacity: saving ? 0.7 : 1 }}>
-          {saving ? 'Saving…' : 'Submit Repairs'}
+          {saving ? 'Saving…' : isEditMode ? 'Save Changes' : 'Submit Repairs'}
         </button>
       </div>
     </div>

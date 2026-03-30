@@ -65,6 +65,11 @@ export default function EquipmentPage() {
     setSavingStatus(false)
   }
 
+  function handleEdit(record) {
+    const formType = record.record_type === 'inspection' ? 'inspection' : 'repair'
+    navigate(`/equipment/${id}/edit/${record.localId}/${formType}`)
+  }
+
   async function handleVoid(entry, reason) {
     await voidRecord(entry.localId, entry.id, reason, user?.id)
     setTimeline(prev => prev.map(t =>
@@ -266,7 +271,7 @@ export default function EquipmentPage() {
         activeTimeline.map((entry, i) =>
           entry._type === 'status_group'
             ? <StatusGroupCard key="status-group" changes={entry.changes} />
-            : <RecordCard key={entry.localId || entry.id} record={entry} onVoid={handleVoid} />
+            : <RecordCard key={entry.localId || entry.id} record={entry} onVoid={handleVoid} onEdit={handleEdit} />
         )
       )}
 
@@ -283,7 +288,7 @@ export default function EquipmentPage() {
           </summary>
           <div style={{ marginTop: 8 }}>
             {voidedRecords.map(entry => (
-              <RecordCard key={entry.localId || entry.id} record={entry} onVoid={handleVoid} />
+              <RecordCard key={entry.localId || entry.id} record={entry} onVoid={handleVoid} onEdit={handleEdit} />
             ))}
           </div>
         </details>
@@ -319,7 +324,7 @@ function RecordTypeBadge({ type }) {
   )
 }
 
-function RecordCard({ record: r, onVoid }) {
+function RecordCard({ record: r, onVoid, onEdit }) {
   const [showVoidConfirm, setShowVoidConfirm] = useState(false)
   const [voidReason, setVoidReason] = useState('')
   const [voiding, setVoiding] = useState(false)
@@ -351,10 +356,16 @@ function RecordCard({ record: r, onVoid }) {
           )}
         </div>
         {!isVoided && !showVoidConfirm && (
-          <button onClick={() => setShowVoidConfirm(true)}
-            style={{ fontSize: 11, color: '#64748b', background: 'transparent', border: '1px solid #1e293b', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', width: 'auto' }}>
-            Void
-          </button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={() => onEdit(r)}
+              style={{ fontSize: 11, color: '#60a5fa', background: 'transparent', border: '1px solid #1e3a5f', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', width: 'auto' }}>
+              Edit
+            </button>
+            <button onClick={() => setShowVoidConfirm(true)}
+              style={{ fontSize: 11, color: '#64748b', background: 'transparent', border: '1px solid #1e293b', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', width: 'auto' }}>
+              Void
+            </button>
+          </div>
         )}
       </div>
       <div className="record-meta" style={{ textDecoration: isVoided ? 'line-through' : 'none' }}>
@@ -362,6 +373,11 @@ function RecordCard({ record: r, onVoid }) {
         {roNumber && <span style={{ marginLeft: 8, color: 'var(--accent)', fontWeight: 600 }}>{roNumber}</span>}
         {r.synced === 0 && <span className="badge badge-offline" style={{ marginLeft: 8 }}>Pending sync</span>}
       </div>
+      {r.edited_at && (
+        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, fontStyle: 'italic' }}>
+          Edited by {r.edited_by_name || 'unknown'} on {new Date(r.edited_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+        </div>
+      )}
       {isVoided && r.voided_reason && (
         <div style={{ marginTop: 6, fontSize: 12, color: '#f87171', fontStyle: 'italic' }}>
           Void reason: {r.voided_reason}

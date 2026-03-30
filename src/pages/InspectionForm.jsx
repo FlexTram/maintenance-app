@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
-import { saveRecord } from '../lib/sync'
+import { saveRecord, editRecord } from '../lib/sync'
 import { useAuth } from '../lib/auth'
 
 const WHEEL_ITEMS    = ['Wheel Hub', 'Wheel Bearing Outer', 'Wheel Bearing Inner', 'Tire Tread']
@@ -16,10 +16,12 @@ const initCorner = items => ({ items: initItems(items), tire_pressure: '', align
 const initSteer  = items => ({ items: initItems(items), comments: '' })
 
 export default function InspectionForm() {
-  const { id }   = useParams()
+  const { id, recordId } = useParams()
+  const isEditMode = !!recordId
   const navigate = useNavigate()
   const { user } = useAuth()
   const [eq, setEq]       = useState(null)
+  const [existingRecord, setExistingRecord] = useState(null)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState([])
 
@@ -48,6 +50,43 @@ export default function InspectionForm() {
   const [aboveItems,  setAboveItems]  = useState(initItems(ABOVE_ITEMS))
 
   useEffect(() => { db.equipment.get(id).then(setEq) }, [id])
+
+  // Pre-populate form when editing an existing record
+  useEffect(() => {
+    if (!recordId) return
+    db.records.where('localId').equals(Number(recordId)).first().then(record => {
+      if (!record) return
+      setExistingRecord(record)
+      setTech(record.technician_name || '')
+      setDate(record.service_date || '')
+      setRo(record.form_data?.ro_number || '')
+      setAda(record.form_data?.ada_compliant || '')
+      setStatus(record.status || 'in_service')
+      setGeneralComments(record.form_data?.general_comments || '')
+      setTechSig(record.form_data?.tech_signature || '')
+      setTechSigDate(record.form_data?.tech_sig_date || '')
+      setSupSig(record.form_data?.supervisor_signature || '')
+      setSupSigDate(record.form_data?.supervisor_sig_date || '')
+      const wa = record.form_data?.wheel_assembly
+      if (wa) {
+        setWheelLF(wa.left_front  || initCorner(WHEEL_ITEMS))
+        setWheelRF(wa.right_front || initCorner(WHEEL_ITEMS))
+        setWheelLR(wa.left_rear   || initCorner(WHEEL_ITEMS))
+        setWheelRR(wa.right_rear  || initCorner(WHEEL_ITEMS))
+      }
+      const ss = record.form_data?.steering_system
+      if (ss) {
+        setSteerLF(ss.left_front  || initSteer(STEERING_ITEMS))
+        setSteerRF(ss.right_front || initSteer(STEERING_ITEMS))
+        setSteerLR(ss.left_rear   || initSteer(STEERING_ITEMS))
+        setSteerRR(ss.right_rear  || initSteer(STEERING_ITEMS))
+      }
+      if (record.form_data?.hitch_system)  setHitchItems(record.form_data.hitch_system)
+      if (record.form_data?.wiring_system) setWiringItems(record.form_data.wiring_system)
+      if (record.form_data?.under_tram)    setUnderItems(record.form_data.under_tram)
+      if (record.form_data?.above_tram)    setAboveItems(record.form_data.above_tram)
+    })
+  }, [recordId])
 
   function formatRO(val) {
     // Strip non-alphanumeric, ensure RO- prefix, uppercase
@@ -112,12 +151,25 @@ export default function InspectionForm() {
         tech_signature: techSig, tech_sig_date: techSigDate,
         supervisor_signature: supSig, supervisor_sig_date: supSigDate,
       }
-      await saveRecord({
-        equipment_id: id, technician_name: tech, service_date: date,
-        status, inspection_notes: generalComments || 'Inspection completed',
-        parts_replaced: [], created_by: user?.id,
-        record_type: 'inspection', form_data: formData,
-      })
+
+      if (isEditMode && existingRecord) {
+        await editRecord(
+          existingRecord.localId, existingRecord.id,
+          {
+            technician_name: tech, service_date: date, status,
+            inspection_notes: generalComments || 'Inspection completed',
+            form_data: formData,
+          },
+          user?.id, user?.user_metadata?.full_name
+        )
+      } else {
+        await saveRecord({
+          equipment_id: id, technician_name: tech, service_date: date,
+          status, inspection_notes: generalComments || 'Inspection completed',
+          parts_replaced: [], created_by: user?.id,
+          record_type: 'inspection', form_data: formData,
+        })
+      }
       navigate(`/equipment/${id}`)
     } catch (err) {
       console.error('Failed to save inspection:', err)
@@ -131,7 +183,7 @@ export default function InspectionForm() {
   return (
     <div className="page">
       <button className="back" onClick={() => navigate(`/equipment/${id}`)}>← Back</button>
-      <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 2 }}>Tram Inspection</div>
+      <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 2 }}>{isEditMode ? 'Edit Tram Inspection' : 'Tram Inspection'}</div>
       <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: '1.5rem' }}>
         {eq.name}{eq.model ? ` — ${eq.model}` : ''} · {eq.serial_number || eq.qr_id}
       </div>
@@ -270,7 +322,7 @@ export default function InspectionForm() {
         </button>
         <button onClick={submit} disabled={saving}
           style={{ flex: 2, padding: '10px 0', borderRadius: 8, background: '#f5a623', color: '#0f1117', border: 'none', fontSize: 15, fontWeight: 700, letterSpacing: '0.04em', opacity: saving ? 0.7 : 1 }}>
-          {saving ? 'Saving…' : 'Submit Inspection'}
+          {saving ? 'Saving…' : isEditMode ? 'Save Changes' : 'Submit Inspection'}
         </button>
       </div>
     </div>

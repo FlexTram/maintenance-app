@@ -48,6 +48,8 @@ export default function App() {
           <Route path="/equipment/:id/new"             element={<ProtectedRoute><NewRecordPage /></ProtectedRoute>} />
           <Route path="/equipment/:id/new/inspection" element={<ProtectedRoute><InspectionForm /></ProtectedRoute>} />
           <Route path="/equipment/:id/new/repair"     element={<ProtectedRoute><RepairForm /></ProtectedRoute>} />
+          <Route path="/equipment/:id/edit/:recordId/inspection" element={<ProtectedRoute><InspectionForm /></ProtectedRoute>} />
+          <Route path="/equipment/:id/edit/:recordId/repair"     element={<ProtectedRoute><RepairForm /></ProtectedRoute>} />
           <Route path="/records" element={<ProtectedRoute><RecordsPage /></ProtectedRoute>} />
           <Route path="/docs"    element={<ProtectedRoute><DocsPage /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />

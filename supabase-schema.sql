@@ -50,7 +50,10 @@ create table if not exists maintenance_records (
   voided          boolean default false,
   voided_reason   text,
   voided_at       timestamptz,
-  voided_by       uuid references auth.users(id)
+  voided_by       uuid references auth.users(id),
+  edited_by       uuid references auth.users(id),
+  edited_at       timestamptz,
+  edited_by_name  text
 );
 
 -- ── Indexes for common queries ────────────────────────────────
