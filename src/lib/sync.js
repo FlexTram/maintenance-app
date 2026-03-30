@@ -151,7 +151,7 @@ export async function flushPendingRecords() {
   if (!pending.length) return
 
   for (const record of pending) {
-    const { localId, synced, ...supabaseRecord } = record
+    const { localId, synced, created_at, ...supabaseRecord } = record
 
     const { data, error } = await supabase
       .from('maintenance_records')
