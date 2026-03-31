@@ -335,7 +335,7 @@ export default function BatchDropOffForm() {
         <>
           <FormSectionHeader title="Condition Check" />
           <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 12 }}>
-            Quick walk-around for each tram. Toggle "Damage" to add notes and photos.
+            Quick walk-around for each tram. Photos available on all items for before/after documentation.
           </div>
 
           {selectedTrams.map((tram, idx) => {
@@ -389,23 +389,23 @@ export default function BatchDropOffForm() {
                             >Damage</button>
                           </div>
                         </div>
-                        {/* Expand notes + photo when damage toggled */}
-                        {isDamage && (
-                          <div style={{ padding: '0 12px 10px 12px' }}>
+                        {/* Notes expand on damage; photos always available */}
+                        <div style={{ padding: '0 12px 10px 12px' }}>
+                          {isDamage && (
                             <textarea
                               value={cond.notes}
                               onChange={e => setConditionNotes(tram.id, key, e.target.value)}
                               placeholder={`Describe ${label.toLowerCase()} damage...`}
                               style={{ minHeight: 56, fontSize: 13, marginBottom: 6 }}
                             />
-                            <PhotoSection
-                              sectionKey={photoKey}
-                              photos={tramPhotos[photoKey] || []}
-                              onChange={handlePhotoChange}
-                              inline
-                            />
-                          </div>
-                        )}
+                          )}
+                          <PhotoSection
+                            sectionKey={photoKey}
+                            photos={tramPhotos[photoKey] || []}
+                            onChange={handlePhotoChange}
+                            inline
+                          />
+                        </div>
                       </div>
                     )
                   })}
