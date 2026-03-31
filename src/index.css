@@ -116,6 +116,7 @@ label {
 }
 .badge-pending { background: var(--pend-bg); color: var(--pend-text); }
 .badge-offline { background: var(--bg3); color: var(--text2); }
+.badge-error   { background: var(--fail-bg); color: var(--fail-text); }
 
 /* Navigation back link */
 .back {

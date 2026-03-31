@@ -11,3 +11,10 @@ db.version(1).stores({
   // `synced` flag: 0 = pending upload, 1 = confirmed in Supabase
   records: '++localId, id, equipment_id, synced, service_date',
 })
+
+db.version(2).stores({
+  equipment: 'id, qr_id',
+  records: '++localId, id, equipment_id, synced, service_date',
+  // Sync error log — records failed Supabase upload attempts
+  syncErrors: '++id, record_id, failed_at',
+})

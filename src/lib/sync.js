@@ -161,6 +161,13 @@ export async function flushPendingRecords() {
 
     if (error) {
       console.error('[sync] Failed to sync record:', error.message)
+      await db.syncErrors.add({
+        record_id: record.id,
+        local_id: record.localId,
+        equipment_id: record.equipment_id,
+        error_message: error.message,
+        failed_at: new Date().toISOString(),
+      })
     } else if (data) {
       await db.records.update(localId, { synced: 1, id: data.id })
     }

@@ -371,7 +371,15 @@ function RecordCard({ record: r, onVoid, onEdit }) {
       <div className="record-meta" style={{ textDecoration: isVoided ? 'line-through' : 'none' }}>
         {date}
         {roNumber && <span style={{ marginLeft: 8, color: 'var(--accent)', fontWeight: 600 }}>{roNumber}</span>}
-        {r.synced === 0 && <span className="badge badge-offline" style={{ marginLeft: 8 }}>Pending sync</span>}
+        {r.synced === 0 && (() => {
+          const pendingMs = r.created_at ? Date.now() - new Date(r.created_at).getTime() : 0
+          const pendingMin = pendingMs / 60000
+          if (pendingMin > 60 * 24)
+            return <span className="badge badge-error" style={{ marginLeft: 8 }}>Sync failed</span>
+          if (pendingMin > 30)
+            return <span className="badge badge-pending" style={{ marginLeft: 8 }}>Sync delayed</span>
+          return <span className="badge badge-offline" style={{ marginLeft: 8 }}>Pending sync</span>
+        })()}
       </div>
       {r.edited_at && (
         <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, fontStyle: 'italic' }}>
