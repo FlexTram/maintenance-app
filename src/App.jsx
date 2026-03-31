@@ -12,7 +12,8 @@ const NewRecordPage  = lazy(() => import('./pages/NewRecordPage'))
 const InspectionForm = lazy(() => import('./pages/InspectionForm'))
 const RepairForm     = lazy(() => import('./pages/RepairForm'))
 const RecordsPage    = lazy(() => import('./pages/RecordsPage'))
-const DocsPage       = lazy(() => import('./pages/DocsPage'))
+const DocsPage            = lazy(() => import('./pages/DocsPage'))
+const BatchDropOffForm    = lazy(() => import('./pages/BatchDropOffForm'))
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="/equipment/:id/new/repair"     element={<ProtectedRoute><RepairForm /></ProtectedRoute>} />
           <Route path="/equipment/:id/edit/:recordId/inspection" element={<ProtectedRoute><InspectionForm /></ProtectedRoute>} />
           <Route path="/equipment/:id/edit/:recordId/repair"     element={<ProtectedRoute><RepairForm /></ProtectedRoute>} />
+          <Route path="/dropoff" element={<ProtectedRoute><BatchDropOffForm /></ProtectedRoute>} />
           <Route path="/records" element={<ProtectedRoute><RecordsPage /></ProtectedRoute>} />
           <Route path="/docs"    element={<ProtectedRoute><DocsPage /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />

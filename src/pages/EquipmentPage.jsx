@@ -311,15 +311,19 @@ function ProfileField({ label, value }) {
 }
 
 function RecordTypeBadge({ type }) {
-  const isInspection = type === 'inspection'
+  const config = {
+    inspection: { bg: '#1e3a5f', color: '#60a5fa', label: 'Inspection' },
+    repair:     { bg: '#5c2d0e', color: '#fb923c', label: 'Repair' },
+    dropoff:    { bg: '#1a2e1a', color: '#4ade80', label: 'Drop-Off' },
+  }
+  const c = config[type]
+  if (!c) return null
   return (
     <span style={{
       fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-      padding: '3px 8px', borderRadius: 4,
-      background: isInspection ? '#1e3a5f' : '#5c2d0e',
-      color: isInspection ? '#60a5fa' : '#fb923c',
+      padding: '3px 8px', borderRadius: 4, background: c.bg, color: c.color,
     }}>
-      {isInspection ? 'Inspection' : 'Repair'}
+      {c.label}
     </span>
   )
 }

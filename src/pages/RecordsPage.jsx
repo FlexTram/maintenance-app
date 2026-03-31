@@ -245,7 +245,12 @@ export default function RecordsPage() {
             const date = new Date(entry.service_date + 'T12:00:00').toLocaleDateString('en-US', {
               month: 'short', day: 'numeric', year: 'numeric'
             })
-            const isInspection = entry.record_type === 'inspection'
+            const badgeConfig = {
+              inspection: { bg: '#1e3a5f', color: '#60a5fa', label: 'Inspection' },
+              repair:     { bg: '#5c2d0e', color: '#fb923c', label: 'Repair' },
+              dropoff:    { bg: '#1a2e1a', color: '#4ade80', label: 'Drop-Off' },
+            }
+            const badge = badgeConfig[entry.record_type]
             return (
               <div
                 key={entry.localId || entry.id}
@@ -255,9 +260,9 @@ export default function RecordsPage() {
               >
                 <div className="record-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {entry.record_type && (
-                      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 4, background: isInspection ? '#1e3a5f' : '#5c2d0e', color: isInspection ? '#60a5fa' : '#fb923c' }}>
-                        {isInspection ? 'Inspection' : 'Repair'}
+                    {badge && (
+                      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 4, background: badge.bg, color: badge.color }}>
+                        {badge.label}
                       </span>
                     )}
                     <span style={{ fontWeight: 500, fontSize: 14 }}>{eq?.name || 'Unknown equipment'}</span>

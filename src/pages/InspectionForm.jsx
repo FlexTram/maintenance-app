@@ -5,6 +5,43 @@ import { saveRecord, editRecord } from '../lib/sync'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 
+// ── Shared photo utilities (exported for reuse in BatchDropOffForm) ──
+
+export async function compressImage(file) {
+  return new Promise(resolve => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      const scale = Math.min(1, 1200 / img.width)
+      const canvas = document.createElement('canvas')
+      canvas.width  = Math.round(img.width  * scale)
+      canvas.height = Math.round(img.height * scale)
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+      URL.revokeObjectURL(url)
+      canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.78)
+    }
+    img.src = url
+  })
+}
+
+export async function uploadSectionPhotos(sectionKey, photos, equipmentId, timestamp) {
+  const urls = []
+  for (let i = 0; i < photos.length; i++) {
+    const compressed = await compressImage(photos[i].file)
+    const path = `${equipmentId}/${timestamp}/${sectionKey}-${i}.jpg`
+    const { error } = await supabase.storage
+      .from('inspection-photos')
+      .upload(path, compressed, { contentType: 'image/jpeg' })
+    if (error) {
+      console.error(`[photos] Failed to upload ${sectionKey}-${i}:`, error.message)
+    } else {
+      const { data: { publicUrl } } = supabase.storage.from('inspection-photos').getPublicUrl(path)
+      urls.push(publicUrl)
+    }
+  }
+  return urls
+}
+
 const WHEEL_ITEMS    = ['Wheel Hub', 'Wheel Bearing Outer', 'Wheel Bearing Inner', 'Tire Tread']
 const STEERING_ITEMS = ['Axle Rod', 'Steering Bushings Top', 'Steering Bushings Bottom', 'Tie Rod']
 const HITCH_ITEMS    = ['Column Bushings Top', 'Column Bushings Bottom', 'Trailer Coupler, Lever, Safety Clip, Safety Chain', 'Ball Receptacle', 'Latch Bolt and Spring']
@@ -101,41 +138,6 @@ export default function InspectionForm() {
 
   function handlePhotoChange(sectionKey, photos) {
     setSectionPhotos(prev => ({ ...prev, [sectionKey]: photos }))
-  }
-
-  async function compressImage(file) {
-    return new Promise(resolve => {
-      const img = new Image()
-      const url = URL.createObjectURL(file)
-      img.onload = () => {
-        const scale = Math.min(1, 1200 / img.width)
-        const canvas = document.createElement('canvas')
-        canvas.width  = Math.round(img.width  * scale)
-        canvas.height = Math.round(img.height * scale)
-        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
-        URL.revokeObjectURL(url)
-        canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.78)
-      }
-      img.src = url
-    })
-  }
-
-  async function uploadSectionPhotos(sectionKey, photos, equipmentId, timestamp) {
-    const urls = []
-    for (let i = 0; i < photos.length; i++) {
-      const compressed = await compressImage(photos[i].file)
-      const path = `${equipmentId}/${timestamp}/${sectionKey}-${i}.jpg`
-      const { error } = await supabase.storage
-        .from('inspection-photos')
-        .upload(path, compressed, { contentType: 'image/jpeg' })
-      if (error) {
-        console.error(`[photos] Failed to upload ${sectionKey}-${i}:`, error.message)
-      } else {
-        const { data: { publicUrl } } = supabase.storage.from('inspection-photos').getPublicUrl(path)
-        urls.push(publicUrl)
-      }
-    }
-    return urls
   }
 
   function formatRO(val) {
@@ -404,7 +406,7 @@ export function FormSectionHeader({ title }) {
   )
 }
 
-function PhotoSection({ sectionKey, photos, existingUrls = [], onChange, inline = false }) {
+export function PhotoSection({ sectionKey, photos, existingUrls = [], onChange, inline = false }) {
   const inputRef = useRef(null)
   const MAX = 3
   const totalCount = (existingUrls?.length || 0) + photos.length
