@@ -50,10 +50,11 @@ export default function InspectionForm() {
   const [underItems,  setUnderItems]  = useState(initItems(UNDER_ITEMS))
   const [aboveItems,  setAboveItems]  = useState(initItems(ABOVE_ITEMS))
 
-  // Photos: one array of { file, preview } per section (new uploads)
+  // Photos: one array of { file, preview } per sub-section (new uploads)
   const [sectionPhotos, setSectionPhotos] = useState({
-    wheel_assembly: [], steering_system: [], hitch_system: [],
-    wiring_system: [], under_tram: [], above_tram: [],
+    wheel_lf: [], wheel_rf: [], wheel_lr: [], wheel_rr: [],
+    steer_lf: [], steer_rf: [], steer_lr: [], steer_rr: [],
+    hitch_system: [], wiring_system: [], under_tram: [], above_tram: [],
   })
   // Existing uploaded photo URLs (populated in edit mode)
   const [existingPhotoUrls, setExistingPhotoUrls] = useState({})
@@ -311,33 +312,33 @@ export default function InspectionForm() {
 
       {/* Wheel Assembly */}
       <FormSectionHeader title="Wheel Assembly & Tires" />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 8 }}>
-        {[['Left Front', wheelLF, setWheelLF], ['Right Front', wheelRF, setWheelRF],
-          ['Left Rear',  wheelLR, setWheelLR], ['Right Rear',  wheelRR, setWheelRR]
-        ].map(([label, state, setter]) => (
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: '1.5rem' }}>
+        {[['Left Front', wheelLF, setWheelLF, 'wheel_lf'], ['Right Front', wheelRF, setWheelRF, 'wheel_rf'],
+          ['Left Rear',  wheelLR, setWheelLR, 'wheel_lr'], ['Right Rear',  wheelRR, setWheelRR, 'wheel_rr']
+        ].map(([label, state, setter, photoKey]) => (
           <WheelCard key={label} label={label} items={WHEEL_ITEMS} state={state}
             onItemChange={(item, val) => updateItem(setter, item, val)}
             onFieldChange={(field, val) => updateCorner(setter, field, val)}
+            photos={sectionPhotos[photoKey]} existingUrls={existingPhotoUrls[photoKey]}
+            photoKey={photoKey} onPhotoChange={handlePhotoChange}
           />
         ))}
       </div>
-      <PhotoSection sectionKey="wheel_assembly" photos={sectionPhotos.wheel_assembly}
-        existingUrls={existingPhotoUrls.wheel_assembly} onChange={handlePhotoChange} />
 
       {/* Steering System */}
-      <FormSectionHeader title="Steering System" style={{ marginTop: '1.5rem' }} />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 8 }}>
-        {[['Left Front', steerLF, setSteerLF], ['Right Front', steerRF, setSteerRF],
-          ['Left Rear',  steerLR, setSteerLR], ['Right Rear',  steerRR, setSteerRR]
-        ].map(([label, state, setter]) => (
+      <FormSectionHeader title="Steering System" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: '1.5rem' }}>
+        {[['Left Front', steerLF, setSteerLF, 'steer_lf'], ['Right Front', steerRF, setSteerRF, 'steer_rf'],
+          ['Left Rear',  steerLR, setSteerLR, 'steer_lr'], ['Right Rear',  steerRR, setSteerRR, 'steer_rr']
+        ].map(([label, state, setter, photoKey]) => (
           <CheckCard key={label} label={label} items={STEERING_ITEMS} state={state}
             onItemChange={(item, val) => updateItem(setter, item, val)}
             onCommentChange={val => updateCorner(setter, 'comments', val)}
+            photos={sectionPhotos[photoKey]} existingUrls={existingPhotoUrls[photoKey]}
+            photoKey={photoKey} onPhotoChange={handlePhotoChange}
           />
         ))}
       </div>
-      <PhotoSection sectionKey="steering_system" photos={sectionPhotos.steering_system}
-        existingUrls={existingPhotoUrls.steering_system} onChange={handlePhotoChange} />
 
       {/* Single-table sections */}
       {[
@@ -403,7 +404,7 @@ export function FormSectionHeader({ title }) {
   )
 }
 
-function PhotoSection({ sectionKey, photos, existingUrls = [], onChange }) {
+function PhotoSection({ sectionKey, photos, existingUrls = [], onChange, inline = false }) {
   const inputRef = useRef(null)
   const MAX = 3
   const totalCount = (existingUrls?.length || 0) + photos.length
@@ -419,41 +420,33 @@ function PhotoSection({ sectionKey, photos, existingUrls = [], onChange }) {
     onChange(sectionKey, photos.filter((_, i) => i !== index))
   }
 
-  if (totalCount === 0 && photos.length === 0) {
-    // Render a minimal "Add Photo" row
-    return (
-      <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderTop: 'none', borderRadius: '0 0 8px 8px', padding: '8px 12px', marginBottom: '1.5rem' }}>
-        <input ref={inputRef} type="file" accept="image/*" capture="environment"
-          style={{ display: 'none' }} onChange={e => { if (e.target.files[0]) handleAdd(e.target.files[0]); e.target.value = '' }} />
-        <button type="button" onClick={() => inputRef.current?.click()}
-          style={{ width: 'auto', fontSize: 12, padding: '5px 12px', borderRadius: 6, color: 'var(--text2)', border: '1px dashed var(--border2)', background: 'transparent', cursor: 'pointer' }}>
-          📷 Add Photo
-        </button>
-      </div>
-    )
-  }
+  const outerStyle = inline
+    ? { padding: '8px 12px', borderTop: '0.5px solid var(--border)' }
+    : { background: 'var(--bg2)', border: '0.5px solid var(--border)', borderTop: 'none', borderRadius: '0 0 8px 8px', padding: '10px 12px', marginBottom: '1.5rem' }
 
   return (
-    <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderTop: 'none', borderRadius: '0 0 8px 8px', padding: '10px 12px', marginBottom: '1.5rem' }}>
-      <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text2)', marginBottom: 8 }}>Photos</div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: totalCount < MAX ? 8 : 0 }}>
-        {/* Existing uploaded photos (edit mode) — read-only */}
-        {existingUrls?.map((url, i) => (
-          <a key={`ex-${i}`} href={url} target="_blank" rel="noopener noreferrer">
-            <img src={url} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' }} />
-          </a>
-        ))}
-        {/* New photos queued for upload */}
-        {photos.map((p, i) => (
-          <div key={`new-${i}`} style={{ position: 'relative' }}>
-            <img src={p.preview} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' }} />
-            <button onClick={() => handleRemoveNew(i)}
-              style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#ef4444', color: '#fff', border: 'none', fontSize: 14, padding: 0, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              ×
-            </button>
-          </div>
-        ))}
-      </div>
+    <div style={outerStyle}>
+      {(totalCount > 0 || !inline) && (
+        <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text2)', marginBottom: totalCount > 0 ? 8 : 6 }}>Photos</div>
+      )}
+      {totalCount > 0 && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: totalCount < MAX ? 8 : 0 }}>
+          {existingUrls?.map((url, i) => (
+            <a key={`ex-${i}`} href={url} target="_blank" rel="noopener noreferrer">
+              <img src={url} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' }} />
+            </a>
+          ))}
+          {photos.map((p, i) => (
+            <div key={`new-${i}`} style={{ position: 'relative' }}>
+              <img src={p.preview} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' }} />
+              <button onClick={() => handleRemoveNew(i)}
+                style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#ef4444', color: '#fff', border: 'none', fontSize: 14, padding: 0, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       {totalCount < MAX && (
         <>
           <input ref={inputRef} type="file" accept="image/*" capture="environment"
@@ -551,7 +544,7 @@ function TableHeader() {
   )
 }
 
-function WheelCard({ label, items, state, onItemChange, onFieldChange }) {
+function WheelCard({ label, items, state, onItemChange, onFieldChange, photos, existingUrls, photoKey, onPhotoChange }) {
   return (
     <div style={{ background: 'var(--surface)', border: '0.5px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
       <div style={{ background: 'var(--surface2)', padding: '8px 12px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text2)', borderBottom: '0.5px solid var(--border)' }}>{label}</div>
@@ -575,11 +568,13 @@ function WheelCard({ label, items, state, onItemChange, onFieldChange }) {
         <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text2)', marginBottom: 6 }}>Comments</div>
         <textarea value={state.comments} onChange={e => onFieldChange('comments', e.target.value)} placeholder={`Notes for ${label.toLowerCase()}…`} style={{ minHeight: 56, fontSize: 13 }} />
       </div>
+      <PhotoSection sectionKey={photoKey} photos={photos || []}
+        existingUrls={existingUrls} onChange={onPhotoChange} inline />
     </div>
   )
 }
 
-function CheckCard({ label, items, state, onItemChange, onCommentChange }) {
+function CheckCard({ label, items, state, onItemChange, onCommentChange, photos, existingUrls, photoKey, onPhotoChange }) {
   return (
     <div style={{ background: 'var(--surface)', border: '0.5px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
       <div style={{ background: 'var(--surface2)', padding: '8px 12px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text2)', borderBottom: '0.5px solid var(--border)' }}>{label}</div>
@@ -591,6 +586,8 @@ function CheckCard({ label, items, state, onItemChange, onCommentChange }) {
         <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text2)', marginBottom: 6 }}>Comments</div>
         <textarea value={state.comments} onChange={e => onCommentChange(e.target.value)} placeholder="Notes…" style={{ minHeight: 56, fontSize: 13 }} />
       </div>
+      <PhotoSection sectionKey={photoKey} photos={photos || []}
+        existingUrls={existingUrls} onChange={onPhotoChange} inline />
     </div>
   )
 }
