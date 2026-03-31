@@ -362,7 +362,7 @@ function RecordCard({ record: r, onVoid, onEdit }) {
               Edit
             </button>
             <button onClick={() => setShowVoidConfirm(true)}
-              style={{ fontSize: 11, color: '#64748b', background: 'transparent', border: '1px solid #1e293b', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', width: 'auto' }}>
+              style={{ fontSize: 11, color: '#f87171', background: 'transparent', border: '1px solid #450a0a', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', width: 'auto' }}>
               Void
             </button>
           </div>

@@ -417,7 +417,7 @@ function WheelCard({ label, items, state, onItemChange, onFieldChange }) {
       ))}
       <div style={{ padding: '8px 12px', borderTop: '0.5px solid var(--border)', display: 'grid', gridTemplateColumns: '1fr 90px', gap: 8, alignItems: 'center' }}>
         <span style={{ fontSize: 13 }}>Tire Pressure (PSI)</span>
-        <input type="number" value={state.tire_pressure} onChange={e => onFieldChange('tire_pressure', e.target.value)} placeholder="PSI" style={{ textAlign: 'center', padding: '6px 8px', fontSize: 13 }} />
+        <input type="number" min="0" value={state.tire_pressure} onChange={e => onFieldChange('tire_pressure', Math.max(0, Number(e.target.value)) || '')} placeholder="PSI" style={{ textAlign: 'center', padding: '6px 8px', fontSize: 13 }} />
       </div>
       <div style={{ padding: '8px 12px', display: 'grid', gridTemplateColumns: '1fr 90px', gap: 8, alignItems: 'center', borderTop: '0.5px solid var(--border)' }}>
         <span style={{ fontSize: 13 }}>Alignment</span>
