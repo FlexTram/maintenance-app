@@ -314,17 +314,8 @@ export default function InspectionForm() {
 
       <div style={{ height: 80 }} />
 
-      {/* Sticky submit bar */}
-      <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 680, background: 'var(--bg2)', borderTop: '2px solid #f5a623', padding: '12px 16px', display: 'flex', gap: 10, zIndex: 100, boxShadow: '0 -4px 20px rgba(0,0,0,0.4)', boxSizing: 'border-box' }}>
-        <button onClick={() => navigate(`/equipment/${id}`)}
-          style={{ flex: 1, padding: '10px 0', borderRadius: 8, background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border)', fontSize: 14 }}>
-          Cancel
-        </button>
-        <button onClick={submit} disabled={saving}
-          style={{ flex: 2, padding: '10px 0', borderRadius: 8, background: '#f5a623', color: '#0f1117', border: 'none', fontSize: 15, fontWeight: 700, letterSpacing: '0.04em', opacity: saving ? 0.7 : 1 }}>
-          {saving ? 'Saving…' : isEditMode ? 'Save Changes' : 'Submit Inspection'}
-        </button>
-      </div>
+      <FormSubmitBar onCancel={() => navigate(`/equipment/${id}`)} onSubmit={submit} saving={saving}
+        submitLabel={isEditMode ? 'Save Changes' : 'Submit Inspection'} />
     </div>
   )
 }
@@ -339,6 +330,21 @@ export function FormSectionHeader({ title }) {
   )
 }
 
+export function FormSubmitBar({ onCancel, onSubmit, saving, submitLabel }) {
+  return (
+    <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 680, background: 'var(--bg2)', borderTop: '2px solid #f5a623', padding: '12px 16px', display: 'flex', gap: 10, zIndex: 100, boxShadow: '0 -4px 20px rgba(0,0,0,0.4)', boxSizing: 'border-box' }}>
+      <button onClick={onCancel}
+        style={{ flex: 1, padding: '10px 0', borderRadius: 8, background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border)', fontSize: 14 }}>
+        Cancel
+      </button>
+      <button onClick={onSubmit} disabled={saving}
+        style={{ flex: 2, padding: '10px 0', borderRadius: 8, background: '#f5a623', color: '#0f1117', border: 'none', fontSize: 15, fontWeight: 700, letterSpacing: '0.04em', opacity: saving ? 0.7 : 1 }}>
+        {saving ? 'Saving…' : submitLabel}
+      </button>
+    </div>
+  )
+}
+
 export function FormField({ label, children }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -348,7 +354,7 @@ export function FormField({ label, children }) {
   )
 }
 
-function ADARadio({ value, onChange }) {
+export function ADARadio({ value, onChange }) {
   return (
     <div style={{ display: 'flex', gap: 16, paddingTop: 4 }}>
       {['yes', 'no'].map(opt => (

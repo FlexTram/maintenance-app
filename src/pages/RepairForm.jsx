@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
 import { saveRecord, editRecord } from '../lib/sync'
 import { useAuth } from '../lib/auth'
-import { FormSectionHeader, FormField } from './InspectionForm'
+import { FormSectionHeader, FormField, FormSubmitBar, ADARadio } from './InspectionForm'
 
 const REPAIR_SECTIONS = [
   { key: 'wheel_assembly',  label: 'Wheel Assembly & Tires', placeholder: 'Describe repairs made to wheel assembly and tires…' },
@@ -166,15 +166,7 @@ export default function RepairForm() {
             <input value={ro} onChange={e => setRo(formatRO(e.target.value))} placeholder="RO-XXXXX" />
           </FormField>
           <FormField label="ADA Compliant">
-            <div style={{ display: 'flex', gap: 16, paddingTop: 4 }}>
-              {['yes', 'no'].map(opt => (
-                <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, cursor: 'pointer' }}>
-                  <input type="radio" name="ada-repair" value={opt} checked={ada === opt} onChange={() => setAda(opt)}
-                    style={{ accentColor: 'var(--accent)', width: 18, height: 18 }} />
-                  {opt.charAt(0).toUpperCase() + opt.slice(1)}
-                </label>
-              ))}
-            </div>
+            <ADARadio value={ada} onChange={setAda} />
           </FormField>
           <FormField label="Overall Status">
             <select value={status} onChange={e => setStatus(e.target.value)}>
@@ -231,17 +223,8 @@ export default function RepairForm() {
 
       <div style={{ height: 80 }} />
 
-      {/* Sticky submit bar */}
-      <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 680, background: 'var(--bg2)', borderTop: '2px solid #f5a623', padding: '12px 16px', display: 'flex', gap: 10, zIndex: 100, boxShadow: '0 -4px 20px rgba(0,0,0,0.4)', boxSizing: 'border-box' }}>
-        <button onClick={() => navigate(`/equipment/${id}`)}
-          style={{ flex: 1, padding: '10px 0', borderRadius: 8, background: 'transparent', color: 'var(--text2)', border: '0.5px solid var(--border)', fontSize: 14 }}>
-          Cancel
-        </button>
-        <button onClick={submit} disabled={saving}
-          style={{ flex: 2, padding: '10px 0', borderRadius: 8, background: '#f5a623', color: '#0f1117', border: 'none', fontSize: 15, fontWeight: 700, letterSpacing: '0.04em', opacity: saving ? 0.7 : 1 }}>
-          {saving ? 'Saving…' : isEditMode ? 'Save Changes' : 'Submit Repairs'}
-        </button>
-      </div>
+      <FormSubmitBar onCancel={() => navigate(`/equipment/${id}`)} onSubmit={submit} saving={saving}
+        submitLabel={isEditMode ? 'Save Changes' : 'Submit Repairs'} />
     </div>
   )
 }

@@ -150,7 +150,7 @@ export async function flushPendingRecords() {
   const pending = await db.records.where('synced').equals(0).toArray()
   if (!pending.length) return
 
-  for (const record of pending) {
+  await Promise.all(pending.map(async record => {
     const { localId, synced, created_at, ...supabaseRecord } = record
 
     const { data, error } = await supabase
@@ -171,7 +171,7 @@ export async function flushPendingRecords() {
     } else if (data) {
       await db.records.update(localId, { synced: 1, id: data.id })
     }
-  }
+  }))
 }
 
 /**
