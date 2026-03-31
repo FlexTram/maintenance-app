@@ -70,7 +70,7 @@ vercel --prod --yes
 `id`, `qr_id`, `name`, `type`, `location`, `notes`, `tram_number`, `serial_number`, `model_year`, `manufacturer`, `model`, `canopy_details`, `status` (in_service/out_of_service/pending/retired), `status_note`, `status_updated_at`, `status_updated_by`, `created_at`
 
 ### maintenance_records table
-`id`, `equipment_id`, `technician_name`, `service_date`, `status`, `inspection_notes`, `parts_replaced`, `record_type` (inspection/repair), `form_data` (jsonb), `synced_at`, `created_by`, `voided` (boolean), `voided_reason`, `voided_at`, `voided_by`
+`id`, `equipment_id`, `technician_name`, `service_date`, `status`, `inspection_notes`, `parts_replaced`, `record_type` (inspection/repair), `form_data` (jsonb), `synced_at`, `created_by`, `voided` (boolean), `voided_reason`, `voided_at`, `voided_by`, `edited_by`, `edited_at`, `edited_by_name`
 
 ### status_changes table
 Full audit trail of every status change: `id`, `equipment_id`, `old_status`, `new_status`, `note`, `changed_by`, `changed_by_name`, `changed_at`
@@ -99,6 +99,15 @@ App is **deployed to production** and in field testing with technicians. All cor
 ## Pending Tasks
 - **QR codes** — print and label fleet once ready (waiting on field testing feedback)
 - **Supabase MCP in VS Code** — OAuth works in CLI but VS Code extension needs a new session to pick up MCP tools. Start a new conversation if MCP tools aren't available.
+- **Sync error surface** — `syncErrors` IndexedDB table is being populated on failures; no UI to view it yet. Could add a sync health screen or badge on HomePage later.
+
+## Completed (Session 5 — March 30)
+- ✅ Edit functionality for inspection and repair records (Edit button, pre-populated forms, edit audit trail)
+- ✅ Record sync bug fixed — `created_at` was causing silent Supabase insert failures; records now sync correctly
+- ✅ Tiered "Pending sync" badge — gray (<30 min) → amber "Sync delayed" (30 min–24 hrs) → red "Sync failed" (>24 hrs)
+- ✅ Sync error logging — failed Supabase uploads written to IndexedDB `syncErrors` table (db version 2)
+- ✅ Void button styled red
+- ✅ Tire pressure input clamped to minimum 0 (no negatives)
 
 ## Completed (Session 4 — March 27)
 - ✅ All 4 Operating Procedure links wired up (Shipping / Load Out, Receiving / Load In, Event Days, Tram Rodeo)
@@ -112,15 +121,15 @@ App is **deployed to production** and in field testing with technicians. All cor
 - `src/lib/supabase.js` – Supabase client
 - `src/lib/auth.jsx` – Auth context + Google OAuth
 - `src/lib/db.js` – Local IndexedDB helpers
-- `src/lib/sync.js` – Sync logic; `getEquipmentByIdentifier()` (fuzzy search), `voidRecord()`, `getStatusChangesForEquipment()`, `getAllStatusChanges()`
+- `src/lib/sync.js` – Sync logic; `getEquipmentByIdentifier()` (fuzzy search), `saveRecord()`, `editRecord()`, `voidRecord()`, `flushPendingRecords()` (logs failures to `syncErrors`), `getStatusChangesForEquipment()`, `getAllStatusChanges()`
 - `src/pages/LoginPage.jsx` – Login screen with Flextram artwork
 - `src/pages/HomePage.jsx` – Dashboard with 3 stat cards (In Service / Out of Service / Pending), icons on nav buttons
 - `src/pages/RecordsPage.jsx` – Fleet equipment list + all records timeline with color-coded filter tabs
 - `src/pages/DocsPage.jsx` – Reference docs page (hardcoded, no Supabase needed)
 - `src/pages/EquipmentPage.jsx` – Vehicle profile card + status toggle + timeline (Active Records + Voided Records + status group cards)
 - `src/pages/ScanPage.jsx` – QR scan + manual entry (tram #, serial, or QR ID)
-- `src/pages/InspectionForm.jsx` – Inspection form (routes: `/equipment/:id/new/inspection`)
-- `src/pages/RepairForm.jsx` – Repair form (routes: `/equipment/:id/new/repair`)
+- `src/pages/InspectionForm.jsx` – Inspection form (routes: `/equipment/:id/new/inspection`, `/equipment/:id/edit/:recordId/inspection`)
+- `src/pages/RepairForm.jsx` – Repair form (routes: `/equipment/:id/new/repair`, `/equipment/:id/edit/:recordId/repair`)
 - `src/index.css` – All styles (CSS variables, utility classes). max-width: 680px
 - `vite.config.js` – Vite + PWA config
 - `supabase-schema.sql` – Full DB schema
