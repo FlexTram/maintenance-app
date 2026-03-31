@@ -20,7 +20,7 @@ Located at: `~/Desktop/Maintenance App Project`
 - **Project URL:** https://lpsumqpbvhphtodffmeo.supabase.co
 - **Plan:** Pro ($25/mo) — no pausing, priority support
 - **Auth providers enabled:** Google OAuth, Email
-- **Storage:** Public `documents` bucket for static fleet PDFs (technical drawings, wiring diagrams, tow vehicles, trailer loading)
+- **Storage:** Public `documents` bucket for static fleet PDFs. Public `inspection-photos` bucket for inspection/drop-off photos (compressed client-side, ~400KB each).
 - **Schema:** see `supabase-schema.sql`
 - **MCP:** Configured via `.mcp.json` (HTTP/OAuth to `https://mcp.supabase.com/mcp`). Authenticated via CLI (`claude mcp add`). Falls back to Management API via curl with access token.
 - **Management API (fallback):** `curl -H "Authorization: Bearer $TOKEN" https://api.supabase.com/v1/projects/lpsumqpbvhphtodffmeo/database/query -d '{"query":"SQL"}'`
@@ -101,13 +101,19 @@ App is **deployed to production** and in field testing with technicians. All cor
 - **Supabase MCP in VS Code** — OAuth works in CLI but VS Code extension needs a new session to pick up MCP tools. Start a new conversation if MCP tools aren't available.
 - **Sync error surface** — `syncErrors` IndexedDB table is being populated on failures; no UI to view it yet. Could add a sync health screen or badge on HomePage later.
 
-## Completed (Session 5 — March 30)
-- ✅ Edit functionality for inspection and repair records (Edit button, pre-populated forms, edit audit trail)
-- ✅ Record sync bug fixed — `created_at` was causing silent Supabase insert failures; records now sync correctly
+## Completed (Session 6 — March 31)
+- ✅ Photo capture on inspection form — inline under each corner card (wheels/steering) and section-level (hitch/wiring/under/above). 12 photo spots, max 3 each. Client-side compression via Canvas API (~400KB). Stored in Supabase Storage `inspection-photos` bucket.
+- ✅ Batch Drop-Off form — 4-step flow (Event Info → Select Trams → Condition Check → Sign Off). 6 quick-check items per tram (Good/Damage toggle). Photos available on all items for before/after documentation. Optional customer/site rep signature. Route: `/dropoff`
 - ✅ Tiered "Pending sync" badge — gray (<30 min) → amber "Sync delayed" (30 min–24 hrs) → red "Sync failed" (>24 hrs)
 - ✅ Sync error logging — failed Supabase uploads written to IndexedDB `syncErrors` table (db version 2)
 - ✅ Void button styled red
 - ✅ Tire pressure input clamped to minimum 0 (no negatives)
+- ✅ Code cleanup — extracted SyncBadge, FormSubmitBar, ADARadio shared components; parallel sync via Promise.all; deduplicated RepairForm
+- ✅ RecordTypeBadge now supports 3 types: Inspection (blue), Repair (orange), Drop-Off (green)
+
+## Completed (Session 5 — March 30)
+- ✅ Edit functionality for inspection and repair records (Edit button, pre-populated forms, edit audit trail)
+- ✅ Record sync bug fixed — `created_at` was causing silent Supabase insert failures; records now sync correctly
 
 ## Completed (Session 4 — March 27)
 - ✅ All 4 Operating Procedure links wired up (Shipping / Load Out, Receiving / Load In, Event Days, Tram Rodeo)
@@ -128,8 +134,9 @@ App is **deployed to production** and in field testing with technicians. All cor
 - `src/pages/DocsPage.jsx` – Reference docs page (hardcoded, no Supabase needed)
 - `src/pages/EquipmentPage.jsx` – Vehicle profile card + status toggle + timeline (Active Records + Voided Records + status group cards)
 - `src/pages/ScanPage.jsx` – QR scan + manual entry (tram #, serial, or QR ID)
-- `src/pages/InspectionForm.jsx` – Inspection form (routes: `/equipment/:id/new/inspection`, `/equipment/:id/edit/:recordId/inspection`)
+- `src/pages/InspectionForm.jsx` – Inspection form (routes: `/equipment/:id/new/inspection`, `/equipment/:id/edit/:recordId/inspection`). Also exports shared components: `FormSectionHeader`, `FormField`, `FormSubmitBar`, `ADARadio`, `PhotoSection`, `compressImage`, `uploadSectionPhotos`
 - `src/pages/RepairForm.jsx` – Repair form (routes: `/equipment/:id/new/repair`, `/equipment/:id/edit/:recordId/repair`)
+- `src/pages/BatchDropOffForm.jsx` – Batch drop-off form (route: `/dropoff`). 4-step multi-step flow for event delivery logging. `record_type: 'dropoff'`
 - `src/index.css` – All styles (CSS variables, utility classes). max-width: 680px
 - `vite.config.js` – Vite + PWA config
 - `supabase-schema.sql` – Full DB schema

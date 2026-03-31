@@ -1,10 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
 import { saveRecord } from '../lib/sync'
 import { useAuth } from '../lib/auth'
-import { supabase } from '../lib/supabase'
-import { FormSectionHeader, FormField, FormSubmitBar, PhotoSection, compressImage, uploadSectionPhotos } from './InspectionForm'
+import { FormSectionHeader, FormField, FormSubmitBar, PhotoSection, uploadSectionPhotos } from './InspectionForm'
 
 const CONDITION_ITEMS = [
   { key: 'exterior', label: 'Exterior', desc: 'Body, panels, paint' },
