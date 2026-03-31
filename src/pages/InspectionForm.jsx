@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
 import { saveRecord, editRecord } from '../lib/sync'
 import { useAuth } from '../lib/auth'
+import { supabase } from '../lib/supabase'
 
 const WHEEL_ITEMS    = ['Wheel Hub', 'Wheel Bearing Outer', 'Wheel Bearing Inner', 'Tire Tread']
 const STEERING_ITEMS = ['Axle Rod', 'Steering Bushings Top', 'Steering Bushings Bottom', 'Tie Rod']
@@ -49,6 +50,14 @@ export default function InspectionForm() {
   const [underItems,  setUnderItems]  = useState(initItems(UNDER_ITEMS))
   const [aboveItems,  setAboveItems]  = useState(initItems(ABOVE_ITEMS))
 
+  // Photos: one array of { file, preview } per section (new uploads)
+  const [sectionPhotos, setSectionPhotos] = useState({
+    wheel_assembly: [], steering_system: [], hitch_system: [],
+    wiring_system: [], under_tram: [], above_tram: [],
+  })
+  // Existing uploaded photo URLs (populated in edit mode)
+  const [existingPhotoUrls, setExistingPhotoUrls] = useState({})
+
   useEffect(() => { db.equipment.get(id).then(setEq) }, [id])
 
   // Pre-populate form when editing an existing record
@@ -85,8 +94,48 @@ export default function InspectionForm() {
       if (record.form_data?.wiring_system) setWiringItems(record.form_data.wiring_system)
       if (record.form_data?.under_tram)    setUnderItems(record.form_data.under_tram)
       if (record.form_data?.above_tram)    setAboveItems(record.form_data.above_tram)
+      if (record.form_data?.photos)        setExistingPhotoUrls(record.form_data.photos)
     })
   }, [recordId])
+
+  function handlePhotoChange(sectionKey, photos) {
+    setSectionPhotos(prev => ({ ...prev, [sectionKey]: photos }))
+  }
+
+  async function compressImage(file) {
+    return new Promise(resolve => {
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        const scale = Math.min(1, 1200 / img.width)
+        const canvas = document.createElement('canvas')
+        canvas.width  = Math.round(img.width  * scale)
+        canvas.height = Math.round(img.height * scale)
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+        URL.revokeObjectURL(url)
+        canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.78)
+      }
+      img.src = url
+    })
+  }
+
+  async function uploadSectionPhotos(sectionKey, photos, equipmentId, timestamp) {
+    const urls = []
+    for (let i = 0; i < photos.length; i++) {
+      const compressed = await compressImage(photos[i].file)
+      const path = `${equipmentId}/${timestamp}/${sectionKey}-${i}.jpg`
+      const { error } = await supabase.storage
+        .from('inspection-photos')
+        .upload(path, compressed, { contentType: 'image/jpeg' })
+      if (error) {
+        console.error(`[photos] Failed to upload ${sectionKey}-${i}:`, error.message)
+      } else {
+        const { data: { publicUrl } } = supabase.storage.from('inspection-photos').getPublicUrl(path)
+        urls.push(publicUrl)
+      }
+    }
+    return urls
+  }
 
   function formatRO(val) {
     // Strip non-alphanumeric, ensure RO- prefix, uppercase
@@ -141,6 +190,23 @@ export default function InspectionForm() {
     setErrors([])
     setSaving(true)
     try {
+      // Upload any queued photos; merge with existing URLs from edit mode
+      const uploadedPhotos = { ...existingPhotoUrls }
+      const totalNewPhotos = Object.values(sectionPhotos).reduce((n, arr) => n + arr.length, 0)
+      if (totalNewPhotos > 0) {
+        if (navigator.onLine) {
+          const timestamp = Date.now()
+          for (const [key, photos] of Object.entries(sectionPhotos)) {
+            if (photos.length > 0) {
+              const urls = await uploadSectionPhotos(key, photos, id, timestamp)
+              uploadedPhotos[key] = [...(uploadedPhotos[key] || []), ...urls]
+            }
+          }
+        } else {
+          window.alert('You\'re offline — photos were not saved. The rest of your inspection was saved successfully.')
+        }
+      }
+
       const formData = {
         ro_number: ro, ada_compliant: ada,
         wheel_assembly: { left_front: wheelLF, right_front: wheelRF, left_rear: wheelLR, right_rear: wheelRR },
@@ -150,6 +216,7 @@ export default function InspectionForm() {
         general_comments: generalComments,
         tech_signature: techSig, tech_sig_date: techSigDate,
         supervisor_signature: supSig, supervisor_sig_date: supSigDate,
+        photos: uploadedPhotos,
       }
 
       if (isEditMode && existingRecord) {
@@ -244,7 +311,7 @@ export default function InspectionForm() {
 
       {/* Wheel Assembly */}
       <FormSectionHeader title="Wheel Assembly & Tires" />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 8 }}>
         {[['Left Front', wheelLF, setWheelLF], ['Right Front', wheelRF, setWheelRF],
           ['Left Rear',  wheelLR, setWheelLR], ['Right Rear',  wheelRR, setWheelRR]
         ].map(([label, state, setter]) => (
@@ -254,10 +321,12 @@ export default function InspectionForm() {
           />
         ))}
       </div>
+      <PhotoSection sectionKey="wheel_assembly" photos={sectionPhotos.wheel_assembly}
+        existingUrls={existingPhotoUrls.wheel_assembly} onChange={handlePhotoChange} />
 
       {/* Steering System */}
-      <FormSectionHeader title="Steering System" />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: '1.5rem' }}>
+      <FormSectionHeader title="Steering System" style={{ marginTop: '1.5rem' }} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 8 }}>
         {[['Left Front', steerLF, setSteerLF], ['Right Front', steerRF, setSteerRF],
           ['Left Rear',  steerLR, setSteerLR], ['Right Rear',  steerRR, setSteerRR]
         ].map(([label, state, setter]) => (
@@ -267,19 +336,23 @@ export default function InspectionForm() {
           />
         ))}
       </div>
+      <PhotoSection sectionKey="steering_system" photos={sectionPhotos.steering_system}
+        existingUrls={existingPhotoUrls.steering_system} onChange={handlePhotoChange} />
 
       {/* Single-table sections */}
       {[
-        ['Hitch System',   HITCH_ITEMS,  hitchItems,  setHitchItems],
-        ['Wiring System',  WIRING_ITEMS, wiringItems, setWiringItems],
-        ['Under Tram',     UNDER_ITEMS,  underItems,  setUnderItems],
-        ['Above Tram',     ABOVE_ITEMS,  aboveItems,  setAboveItems],
-      ].map(([title, items, state, setter]) => (
-        <div key={title} style={{ marginBottom: '1.5rem' }}>
+        ['Hitch System',  HITCH_ITEMS,  hitchItems,  setHitchItems,  'hitch_system'],
+        ['Wiring System', WIRING_ITEMS, wiringItems, setWiringItems, 'wiring_system'],
+        ['Under Tram',    UNDER_ITEMS,  underItems,  setUnderItems,  'under_tram'],
+        ['Above Tram',    ABOVE_ITEMS,  aboveItems,  setAboveItems,  'above_tram'],
+      ].map(([title, items, state, setter, sectionKey]) => (
+        <div key={title} style={{ marginTop: '1.5rem' }}>
           <FormSectionHeader title={title} />
           <SimpleCheckCard items={items} state={state}
             onChange={(item, val) => setter(prev => ({ ...prev, [item]: val }))}
           />
+          <PhotoSection sectionKey={sectionKey} photos={sectionPhotos[sectionKey]}
+            existingUrls={existingPhotoUrls[sectionKey]} onChange={handlePhotoChange} />
         </div>
       ))}
 
@@ -326,6 +399,71 @@ export function FormSectionHeader({ title }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', background: 'var(--surface2)', borderLeft: '4px solid var(--accent)', padding: '10px 16px', marginBottom: 8, borderRadius: '0 6px 6px 0' }}>
       <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)' }}>{title}</span>
+    </div>
+  )
+}
+
+function PhotoSection({ sectionKey, photos, existingUrls = [], onChange }) {
+  const inputRef = useRef(null)
+  const MAX = 3
+  const totalCount = (existingUrls?.length || 0) + photos.length
+
+  function handleAdd(file) {
+    if (totalCount >= MAX) return
+    const preview = URL.createObjectURL(file)
+    onChange(sectionKey, [...photos, { file, preview }])
+  }
+
+  function handleRemoveNew(index) {
+    URL.revokeObjectURL(photos[index].preview)
+    onChange(sectionKey, photos.filter((_, i) => i !== index))
+  }
+
+  if (totalCount === 0 && photos.length === 0) {
+    // Render a minimal "Add Photo" row
+    return (
+      <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderTop: 'none', borderRadius: '0 0 8px 8px', padding: '8px 12px', marginBottom: '1.5rem' }}>
+        <input ref={inputRef} type="file" accept="image/*" capture="environment"
+          style={{ display: 'none' }} onChange={e => { if (e.target.files[0]) handleAdd(e.target.files[0]); e.target.value = '' }} />
+        <button type="button" onClick={() => inputRef.current?.click()}
+          style={{ width: 'auto', fontSize: 12, padding: '5px 12px', borderRadius: 6, color: 'var(--text2)', border: '1px dashed var(--border2)', background: 'transparent', cursor: 'pointer' }}>
+          📷 Add Photo
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderTop: 'none', borderRadius: '0 0 8px 8px', padding: '10px 12px', marginBottom: '1.5rem' }}>
+      <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text2)', marginBottom: 8 }}>Photos</div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: totalCount < MAX ? 8 : 0 }}>
+        {/* Existing uploaded photos (edit mode) — read-only */}
+        {existingUrls?.map((url, i) => (
+          <a key={`ex-${i}`} href={url} target="_blank" rel="noopener noreferrer">
+            <img src={url} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' }} />
+          </a>
+        ))}
+        {/* New photos queued for upload */}
+        {photos.map((p, i) => (
+          <div key={`new-${i}`} style={{ position: 'relative' }}>
+            <img src={p.preview} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' }} />
+            <button onClick={() => handleRemoveNew(i)}
+              style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#ef4444', color: '#fff', border: 'none', fontSize: 14, padding: 0, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+      {totalCount < MAX && (
+        <>
+          <input ref={inputRef} type="file" accept="image/*" capture="environment"
+            style={{ display: 'none' }} onChange={e => { if (e.target.files[0]) handleAdd(e.target.files[0]); e.target.value = '' }} />
+          <button type="button" onClick={() => inputRef.current?.click()}
+            style={{ width: 'auto', fontSize: 12, padding: '5px 12px', borderRadius: 6, color: 'var(--text2)', border: '1px dashed var(--border2)', background: 'transparent', cursor: 'pointer' }}>
+            📷 Add Photo
+          </button>
+        </>
+      )}
     </div>
   )
 }

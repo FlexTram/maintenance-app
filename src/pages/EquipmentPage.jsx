@@ -393,6 +393,20 @@ function RecordCard({ record: r, onVoid, onEdit }) {
       {!isVoided && r.inspection_notes && (
         <div className="record-notes">{r.inspection_notes}</div>
       )}
+      {!isVoided && (() => {
+        const allPhotos = Object.values(r.form_data?.photos || {}).flat().filter(Boolean)
+        if (!allPhotos.length) return null
+        return (
+          <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {allPhotos.map((url, i) => (
+              <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                <img src={url} alt={`Photo ${i + 1}`}
+                  style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' }} />
+              </a>
+            ))}
+          </div>
+        )
+      })()}
       {!isVoided && r.parts_replaced?.length > 0 && (
         <div style={{ marginTop: 8 }}>
           {r.parts_replaced.map((p, i) => (
