@@ -232,13 +232,13 @@ export default function BatchDropOffForm() {
               <div style={{ gridColumn: '1 / -1' }}>
                 <FormField label="Event Name *">
                   <input value={eventName} onChange={e => { setEventName(e.target.value); setErrors([]) }} placeholder="e.g. Phoenix Light Rail Festival"
-                    style={errors.length && !eventName.trim() ? { borderColor: '#ef4444' } : {}} />
+                    autoComplete="off" style={errors.length && !eventName.trim() ? { borderColor: '#ef4444' } : {}} />
                 </FormField>
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
                 <FormField label="Location *">
                   <input value={eventLocation} onChange={e => { setEventLocation(e.target.value); setErrors([]) }} placeholder="e.g. 3rd St & Washington"
-                    style={errors.length && !eventLocation.trim() ? { borderColor: '#ef4444' } : {}} />
+                    autoComplete="street-address" style={errors.length && !eventLocation.trim() ? { borderColor: '#ef4444' } : {}} />
                 </FormField>
               </div>
               <FormField label="Date *">
@@ -246,7 +246,7 @@ export default function BatchDropOffForm() {
               </FormField>
               <FormField label="Technician / Driver *">
                 <input value={tech} onChange={e => { setTech(e.target.value); setErrors([]) }} placeholder="Your name"
-                  style={errors.length && !tech.trim() ? { borderColor: '#ef4444' } : {}} />
+                  autoComplete="name" style={errors.length && !tech.trim() ? { borderColor: '#ef4444' } : {}} />
               </FormField>
             </div>
           </div>
@@ -270,14 +270,14 @@ export default function BatchDropOffForm() {
                 setSelectedIds(new Set(fleet.map(e => e.id)))
               }
             }}
-            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 8, marginBottom: 8, cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', minHeight: 48, background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 8, marginBottom: 8, cursor: 'pointer' }}
           >
             <div style={{
-              width: 22, height: 22, borderRadius: 4, border: '2px solid var(--border2)',
+              width: 28, height: 28, borderRadius: 6, border: '2px solid var(--border2)',
               background: selectedIds.size === fleet.length ? '#f59e0b' : 'transparent',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
-              {selectedIds.size === fleet.length && <span style={{ color: '#0f1117', fontSize: 14, fontWeight: 700 }}>✓</span>}
+              {selectedIds.size === fleet.length && <span style={{ color: '#0f1117', fontSize: 16, fontWeight: 700 }}>✓</span>}
             </div>
             <span style={{ fontSize: 14, fontWeight: 600 }}>Select All ({fleet.length} trams)</span>
           </div>
@@ -298,17 +298,17 @@ export default function BatchDropOffForm() {
                     })
                   }}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                    display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', minHeight: 48,
                     borderBottom: '0.5px solid var(--border)', cursor: 'pointer',
                     background: selected ? '#f59e0b10' : 'transparent',
                   }}
                 >
                   <div style={{
-                    width: 22, height: 22, borderRadius: 4, border: `2px solid ${selected ? '#f59e0b' : 'var(--border2)'}`,
+                    width: 28, height: 28, borderRadius: 6, border: `2px solid ${selected ? '#f59e0b' : 'var(--border2)'}`,
                     background: selected ? '#f59e0b' : 'transparent',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                   }}>
-                    {selected && <span style={{ color: '#0f1117', fontSize: 14, fontWeight: 700 }}>✓</span>}
+                    {selected && <span style={{ color: '#0f1117', fontSize: 16, fontWeight: 700 }}>✓</span>}
                   </div>
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 600 }}>{eq.name}</div>
@@ -369,7 +369,7 @@ export default function BatchDropOffForm() {
                             <button
                               onClick={() => setConditionStatus(tram.id, key, 'good')}
                               style={{
-                                width: 'auto', padding: '5px 12px', fontSize: 11, fontWeight: 700, borderRadius: 6,
+                                width: 'auto', minHeight: 44, padding: '10px 16px', fontSize: 13, fontWeight: 700, borderRadius: 8,
                                 border: `1px solid ${!isDamage ? '#4ade80' : 'var(--border)'}`,
                                 background: !isDamage ? '#052e16' : 'transparent',
                                 color: !isDamage ? '#4ade80' : 'var(--text3)',
@@ -379,7 +379,7 @@ export default function BatchDropOffForm() {
                             <button
                               onClick={() => setConditionStatus(tram.id, key, 'damage')}
                               style={{
-                                width: 'auto', padding: '5px 12px', fontSize: 11, fontWeight: 700, borderRadius: 6,
+                                width: 'auto', minHeight: 44, padding: '10px 16px', fontSize: 13, fontWeight: 700, borderRadius: 8,
                                 border: `1px solid ${isDamage ? '#f87171' : 'var(--border)'}`,
                                 background: isDamage ? '#450a0a' : 'transparent',
                                 color: isDamage ? '#f87171' : 'var(--text3)',
@@ -461,10 +461,11 @@ export default function BatchDropOffForm() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px' }}>
               <FormField label="Technician Signature *">
                 <input value={techSig} onChange={e => { setTechSig(e.target.value); setErrors([]) }} placeholder="Type full name as signature"
-                  style={errors.length && !techSig.trim() ? { borderColor: '#ef4444' } : {}} />
+                  autoComplete="name" autoCorrect="off" style={errors.length && !techSig.trim() ? { borderColor: '#ef4444' } : {}} />
               </FormField>
               <FormField label="Customer / Site Rep (Optional)">
-                <input value={customerSig} onChange={e => setCustomerSig(e.target.value)} placeholder="Type full name as signature" />
+                <input value={customerSig} onChange={e => setCustomerSig(e.target.value)} placeholder="Type full name as signature"
+                  autoComplete="off" autoCorrect="off" />
               </FormField>
             </div>
           </div>

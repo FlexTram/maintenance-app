@@ -42,12 +42,23 @@ export default defineConfig({
             }
           },
           {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/public\/.*/i,
+            // Cache static fleet PDFs (documents bucket) — offline access
+            urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/public\/documents\/.*/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'supabase-storage-docs',
               expiration: { maxEntries: 50, maxAgeSeconds: 30 * 24 * 60 * 60 },
               cacheableResponse: { statuses: [0, 200] },
+            }
+          },
+          {
+            // Inspection/drop-off photos — don't hoard in cache, fetch fresh
+            urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/public\/inspection-photos\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'inspection-photos',
+              expiration: { maxEntries: 100, maxAgeSeconds: 7 * 24 * 60 * 60 },
+              networkTimeoutSeconds: 5,
             }
           }
         ]

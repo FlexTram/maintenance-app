@@ -435,7 +435,7 @@ export function PhotoSection({ sectionKey, photos, existingUrls = [], onChange, 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: totalCount < MAX ? 8 : 0 }}>
           {existingUrls?.map((url, i) => (
             <a key={`ex-${i}`} href={url} target="_blank" rel="noopener noreferrer">
-              <img src={url} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' }} />
+              <img src={url} alt="" loading="lazy" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' }} />
             </a>
           ))}
           {photos.map((p, i) => (

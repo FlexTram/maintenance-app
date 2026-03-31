@@ -369,11 +369,11 @@ function RecordCard({ record: r, onVoid, onEdit }) {
         {!isVoided && !showVoidConfirm && (
           <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={() => onEdit(r)}
-              style={{ fontSize: 11, color: '#60a5fa', background: 'transparent', border: '1px solid #1e3a5f', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', width: 'auto' }}>
+              style={{ fontSize: 12, color: '#60a5fa', background: 'transparent', border: '1px solid #1e3a5f', borderRadius: 8, padding: '8px 14px', minHeight: 40, cursor: 'pointer', width: 'auto' }}>
               Edit
             </button>
             <button onClick={() => setShowVoidConfirm(true)}
-              style={{ fontSize: 11, color: '#f87171', background: 'transparent', border: '1px solid #450a0a', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', width: 'auto' }}>
+              style={{ fontSize: 12, color: '#f87171', background: 'transparent', border: '1px solid #450a0a', borderRadius: 8, padding: '8px 14px', minHeight: 40, cursor: 'pointer', width: 'auto' }}>
               Void
             </button>
           </div>
@@ -404,7 +404,7 @@ function RecordCard({ record: r, onVoid, onEdit }) {
           <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {allPhotos.map((url, i) => (
               <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                <img src={url} alt={`Photo ${i + 1}`}
+                <img src={url} alt={`Photo ${i + 1}`} loading="lazy"
                   style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' }} />
               </a>
             ))}
