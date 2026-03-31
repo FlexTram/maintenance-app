@@ -171,7 +171,7 @@ export default function HomePage() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 14, fontWeight: 500, color: '#f1f5f9' }}>{eq.name}</div>
                   <div style={{ fontSize: 12, color: '#475569' }}>
-                    {eq.qr_id} · {new Date(lastRecord.service_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    {eq.serial_number || eq.qr_id} · {new Date(lastRecord.service_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </div>
                 </div>
                 <StatusBadge status={lastRecord.status} />
