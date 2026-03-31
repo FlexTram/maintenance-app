@@ -110,6 +110,8 @@ App is **deployed to production** and in field testing with technicians. All cor
 - ✅ Tire pressure input clamped to minimum 0 (no negatives)
 - ✅ Code cleanup — extracted SyncBadge, FormSubmitBar, ADARadio shared components; parallel sync via Promise.all; deduplicated RepairForm
 - ✅ RecordTypeBadge now supports 3 types: Inspection (blue), Repair (orange), Drop-Off (green)
+- ✅ Recently serviced cards show serial number instead of redundant QR ID
+- ✅ Added missing index on `maintenance_records.edited_by` (Supabase perf advisory)
 
 ## Completed (Session 5 — March 30)
 - ✅ Edit functionality for inspection and repair records (Edit button, pre-populated forms, edit audit trail)
