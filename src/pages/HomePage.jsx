@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { getAllRecords, getAllEquipment } from '../lib/sync'
+import { getAllRecords, getAllEquipment, voidRecord } from '../lib/sync'
 
 export default function HomePage() {
   const { user, signOut } = useAuth()
@@ -158,28 +158,79 @@ export default function HomePage() {
               Recently serviced
             </div>
             {recent.map(({ eq, lastRecord }) => (
-              <div
-                key={eq.id}
-                role="button" tabIndex="0" aria-label={`View ${eq.name}`}
-                onClick={() => navigate(`/equipment/${eq.id}`)}
-                onKeyDown={e => e.key === 'Enter' && navigate(`/equipment/${eq.id}`)}
-                style={{ border: '0.5px solid #1e293b', borderRadius: 10, padding: 12, marginBottom: 7, display: 'flex', alignItems: 'center', gap: 12, background: '#0f172a', cursor: 'pointer' }}
-              >
-                <div style={{ width: 36, height: 36, background: '#1e293b', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }} aria-hidden="true">
-                  {eq.icon || '⚙️'}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 500, color: '#f1f5f9' }}>{eq.name}</div>
-                  <div style={{ fontSize: 12, color: '#475569' }}>
-                    {eq.serial_number || eq.qr_id} · {new Date(lastRecord.service_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </div>
-                </div>
-                <StatusBadge status={lastRecord.status} />
-              </div>
+              <RecentCard key={eq.id} eq={eq} lastRecord={lastRecord} navigate={navigate} user={user} setRecent={setRecent} />
             ))}
           </>
         )}
       </div>
+    </div>
+  )
+}
+
+function RecentCard({ eq, lastRecord, navigate, user, setRecent }) {
+  const [showVoid, setShowVoid] = useState(false)
+  const [voidReason, setVoidReason] = useState('')
+  const [voiding, setVoiding] = useState(false)
+
+  async function handleVoid() {
+    if (!voidReason.trim()) return
+    setVoiding(true)
+    await voidRecord(lastRecord.localId, lastRecord.id, voidReason.trim(), user?.id)
+    setRecent(prev => prev.filter(r => r.lastRecord.id !== lastRecord.id && r.lastRecord.localId !== lastRecord.localId))
+    setVoiding(false)
+  }
+
+  return (
+    <div style={{ border: '0.5px solid #1e293b', borderRadius: 10, padding: 12, marginBottom: 7, background: '#0f172a' }}>
+      <div
+        role="button" tabIndex="0" aria-label={`View ${eq.name}`}
+        onClick={() => !showVoid && navigate(`/equipment/${eq.id}`)}
+        onKeyDown={e => e.key === 'Enter' && !showVoid && navigate(`/equipment/${eq.id}`)}
+        style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}
+      >
+        <div style={{ width: 36, height: 36, background: '#1e293b', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }} aria-hidden="true">
+          {eq.icon || '⚙️'}
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 500, color: '#f1f5f9' }}>{eq.name}</div>
+          <div style={{ fontSize: 12, color: '#475569' }}>
+            {eq.serial_number || eq.qr_id} · {new Date(lastRecord.service_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </div>
+        </div>
+        <StatusBadge status={lastRecord.status} />
+        <button
+          onClick={e => { e.stopPropagation(); setShowVoid(!showVoid); setVoidReason('') }}
+          style={{ fontSize: 10, color: '#f87171', background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px 6px', fontWeight: 600 }}
+        >
+          Void
+        </button>
+      </div>
+      {showVoid && (
+        <div style={{ marginTop: 8, padding: '8px 10px', background: '#1e293b', borderRadius: 6, border: '1px solid #334155' }}>
+          <textarea
+            placeholder="Reason for voiding…"
+            value={voidReason}
+            onChange={e => setVoidReason(e.target.value)}
+            rows={2}
+            style={{ width: '100%', fontSize: 13, background: '#0f172a', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 6, padding: 8, resize: 'vertical' }}
+          />
+          <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+            <button
+              disabled={!voidReason.trim() || voiding}
+              onClick={handleVoid}
+              style={{ flex: 1, padding: '6px 0', fontSize: 12, fontWeight: 700, borderRadius: 6, border: 'none', cursor: 'pointer', background: '#ef4444', color: '#fff', opacity: !voidReason.trim() || voiding ? 0.4 : 1 }}
+            >
+              {voiding ? 'Voiding…' : 'Confirm Void'}
+            </button>
+            <button
+              onClick={() => { setShowVoid(false); setVoidReason('') }}
+              style={{ flex: 1, padding: '6px 0', fontSize: 12, fontWeight: 600, borderRadius: 6, border: '1px solid #334155', background: 'transparent', color: '#94a3b8', cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
