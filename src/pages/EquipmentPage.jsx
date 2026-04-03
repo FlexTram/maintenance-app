@@ -85,12 +85,15 @@ export default function EquipmentPage() {
   }
 
   async function handleVoidStatusChange(statusChangeId, reason) {
-    await voidStatusChange(statusChangeId, reason, user?.id)
+    const result = await voidStatusChange(statusChangeId, reason, user?.id)
     setTimeline(prev => prev.map(t =>
       t._type === 'status_change' && t.id === statusChangeId
         ? { ...t, voided: true, voided_reason: reason }
         : t
     ))
+    if (result?.revertStatus) {
+      setEq(prev => ({ ...prev, status: result.revertStatus }))
+    }
   }
 
   // Build active timeline — collapse all status changes into one living card

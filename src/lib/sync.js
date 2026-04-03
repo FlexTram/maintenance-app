@@ -304,6 +304,14 @@ export async function updateEquipmentStatus(equipmentId, newStatus, note, userId
  */
 export async function voidStatusChange(statusChangeId, reason, userId) {
   const now = new Date().toISOString()
+
+  // Fetch the status change being voided to get equipment_id
+  const { data: sc } = await supabase
+    .from('status_changes')
+    .select('equipment_id')
+    .eq('id', statusChangeId)
+    .single()
+
   const { error } = await supabase
     .from('status_changes')
     .update({ voided: true, voided_reason: reason, voided_at: now, voided_by: userId })
@@ -312,6 +320,34 @@ export async function voidStatusChange(statusChangeId, reason, userId) {
   if (error) {
     console.error('[sync] Failed to void status change in Supabase:', error.message)
     throw error
+  }
+
+  // Revert equipment status to the most recent non-voided status change
+  if (sc?.equipment_id) {
+    const { data: latest } = await supabase
+      .from('status_changes')
+      .select('new_status')
+      .eq('equipment_id', sc.equipment_id)
+      .or('voided.is.null,voided.eq.false')
+      .order('changed_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    const revertStatus = latest?.new_status || 'in_service'
+
+    await supabase
+      .from('equipment')
+      .update({ status: revertStatus, status_updated_at: now, status_updated_by: userId })
+      .eq('id', sc.equipment_id)
+
+    // Update local IndexedDB too
+    await db.equipment.update(sc.equipment_id, {
+      status: revertStatus,
+      status_updated_at: now,
+      status_updated_by: userId,
+    })
+
+    return { revertStatus }
   }
 }
 
