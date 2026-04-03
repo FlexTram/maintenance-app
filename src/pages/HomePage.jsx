@@ -181,15 +181,7 @@ function RecentCard({ eq, lastRecord, navigate, user, setRecent }) {
   }
 
   return (
-    <div style={{ border: '0.5px solid #1e293b', borderRadius: 10, padding: 12, marginBottom: 7, background: '#0f172a', position: 'relative' }}>
-      {!showVoid && (
-        <button
-          onClick={e => { e.stopPropagation(); setShowVoid(true); setVoidReason('') }}
-          style={{ position: 'absolute', top: 8, right: 8, fontSize: 10, color: '#f87171', background: 'transparent', border: '1px solid #450a0a', borderRadius: 6, cursor: 'pointer', padding: '4px 10px', fontWeight: 600, zIndex: 1 }}
-        >
-          Void
-        </button>
-      )}
+    <div style={{ border: '0.5px solid #1e293b', borderRadius: 10, padding: 12, marginBottom: 7, background: '#0f172a' }}>
       <div
         role="button" tabIndex="0" aria-label={`View ${eq.name}`}
         onClick={() => !showVoid && navigate(`/equipment/${eq.id}`)}
@@ -205,7 +197,17 @@ function RecentCard({ eq, lastRecord, navigate, user, setRecent }) {
             {eq.serial_number || eq.qr_id} · {new Date(lastRecord.service_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
           </div>
         </div>
-        <StatusBadge status={lastRecord.status} />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+          {!showVoid && (
+            <button
+              onClick={e => { e.stopPropagation(); setShowVoid(true); setVoidReason('') }}
+              style={{ fontSize: 10, color: '#f87171', background: 'transparent', border: '1px solid #450a0a', borderRadius: 6, cursor: 'pointer', padding: '3px 10px', fontWeight: 600 }}
+            >
+              Void
+            </button>
+          )}
+          <StatusBadge status={lastRecord.status} />
+        </div>
       </div>
       {showVoid && (
         <div style={{ marginTop: 8, padding: '8px 10px', background: '#1e293b', borderRadius: 6, border: '1px solid #334155' }}>
