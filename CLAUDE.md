@@ -73,7 +73,7 @@ vercel --prod --yes
 `id`, `equipment_id`, `technician_name`, `service_date`, `status`, `inspection_notes`, `parts_replaced`, `record_type` (inspection/repair), `form_data` (jsonb), `synced_at`, `created_by`, `voided` (boolean), `voided_reason`, `voided_at`, `voided_by`, `edited_by`, `edited_at`, `edited_by_name`
 
 ### status_changes table
-Full audit trail of every status change: `id`, `equipment_id`, `old_status`, `new_status`, `note`, `changed_by`, `changed_by_name`, `changed_at`
+Full audit trail of every status change: `id`, `equipment_id`, `old_status`, `new_status`, `note`, `changed_by`, `changed_by_name`, `changed_at`, `voided` (boolean), `voided_reason`, `voided_at`, `voided_by`
 
 ### documents table
 `id`, `equipment_id` (NULL = fleet-wide), `title`, `url`, `category`, `subcategory`, `created_at`
@@ -100,6 +100,15 @@ App is **deployed to production** and in field testing with technicians. All cor
 - **QR codes** — print and label fleet once ready (waiting on field testing feedback)
 - **Supabase MCP in VS Code** — OAuth works in CLI but VS Code extension needs a new session to pick up MCP tools. Start a new conversation if MCP tools aren't available.
 - **Sync error surface** — `syncErrors` IndexedDB table is being populated on failures; no UI to view it yet. Could add a sync health screen or badge on HomePage later.
+
+## Completed (Session 7 — April 3)
+- ✅ Void status change entries — individual status changes can be voided from expanded status group card with required reason, matching service record void pattern
+- ✅ Void on recently serviced cards — homepage cards have "Void Record" button (upper-right, below status badge) with confirmation panel
+- ✅ Status revert on void — voiding a status change reverts equipment to the most recent non-voided status (or `in_service` if none remain), updating both Supabase and IndexedDB
+- ✅ Homepage stats reflect voided status changes immediately (e.g., Out of Service count decreases)
+- ✅ Added RLS UPDATE policy on `status_changes` table (was missing, causing silent void failures)
+- ✅ All void buttons renamed to "Void Record" for clarity across the app
+- ✅ Voided status changes appear in the Voided Records collapsible section with strikethrough, red badge, and void reason
 
 ## Completed (Session 6 — March 31)
 - ✅ Photo capture on inspection form — inline under each corner card (wheels/steering) and section-level (hitch/wiring/under/above). 12 photo spots, max 3 each. Client-side compression via Canvas API (~400KB). Stored in Supabase Storage `inspection-photos` bucket.
@@ -129,7 +138,7 @@ App is **deployed to production** and in field testing with technicians. All cor
 - `src/lib/supabase.js` – Supabase client
 - `src/lib/auth.jsx` – Auth context + Google OAuth
 - `src/lib/db.js` – Local IndexedDB helpers
-- `src/lib/sync.js` – Sync logic; `getEquipmentByIdentifier()` (fuzzy search), `saveRecord()`, `editRecord()`, `voidRecord()`, `flushPendingRecords()` (logs failures to `syncErrors`), `getStatusChangesForEquipment()`, `getAllStatusChanges()`
+- `src/lib/sync.js` – Sync logic; `getEquipmentByIdentifier()` (fuzzy search), `saveRecord()`, `editRecord()`, `voidRecord()`, `voidStatusChange()`, `flushPendingRecords()` (logs failures to `syncErrors`), `getStatusChangesForEquipment()`, `getAllStatusChanges()`
 - `src/pages/LoginPage.jsx` – Login screen with Flextram artwork
 - `src/pages/HomePage.jsx` – Dashboard with 3 stat cards (In Service / Out of Service / Pending), icons on nav buttons
 - `src/pages/RecordsPage.jsx` – Fleet equipment list + all records timeline with color-coded filter tabs
