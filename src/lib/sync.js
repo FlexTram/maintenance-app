@@ -120,9 +120,31 @@ export async function saveRecord(record) {
 }
 
 /**
- * Get all records for a given equipment ID, from local cache.
+ * Get all records for a given equipment ID.
+ * Syncs from Supabase first if online to pick up voided flags.
  */
 export async function getRecordsForEquipment(equipmentId) {
+  if (navigator.onLine) {
+    try {
+      const { data } = await supabase
+        .from('maintenance_records')
+        .select('*')
+        .eq('equipment_id', equipmentId)
+        .order('service_date', { ascending: false })
+      if (data) {
+        for (const rec of data) {
+          const existing = await db.records.where('id').equals(rec.id).first()
+          if (existing) {
+            await db.records.update(existing.localId, { ...rec, localId: existing.localId, synced: 1 })
+          } else {
+            await db.records.put({ ...rec, synced: 1 })
+          }
+        }
+      }
+    } catch (e) {
+      console.error('[sync] Failed to refresh records for equipment:', e.message)
+    }
+  }
   return db.records
     .where('equipment_id')
     .equals(equipmentId)
@@ -132,8 +154,30 @@ export async function getRecordsForEquipment(equipmentId) {
 
 /**
  * Get all records from local cache, newest first.
+ * Syncs from Supabase first if online to pick up voided flags
+ * and records created on other devices.
  */
 export async function getAllRecords() {
+  if (navigator.onLine) {
+    try {
+      const { data } = await supabase
+        .from('maintenance_records')
+        .select('*')
+        .order('service_date', { ascending: false })
+      if (data) {
+        for (const rec of data) {
+          const existing = await db.records.where('id').equals(rec.id).first()
+          if (existing) {
+            await db.records.update(existing.localId, { ...rec, localId: existing.localId, synced: 1 })
+          } else {
+            await db.records.put({ ...rec, synced: 1 })
+          }
+        }
+      }
+    } catch (e) {
+      console.error('[sync] Failed to refresh records from Supabase:', e.message)
+    }
+  }
   const all = await db.records.toArray()
   return all.sort((a, b) => new Date(b.service_date) - new Date(a.service_date))
 }

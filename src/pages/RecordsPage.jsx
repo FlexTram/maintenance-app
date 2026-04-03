@@ -86,6 +86,7 @@ export default function RecordsPage() {
       // Build merged timeline — collapse status changes per equipment into group cards
       const scByEquip = {}
       for (const sc of statusChanges) {
+        if (sc.voided) continue
         if (!scByEquip[sc.equipment_id]) scByEquip[sc.equipment_id] = []
         scByEquip[sc.equipment_id].push(sc)
       }
