@@ -198,15 +198,15 @@ function RecentCard({ eq, lastRecord, navigate, user, setRecent }) {
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+          <StatusBadge status={lastRecord.status} />
           {!showVoid && (
             <button
               onClick={e => { e.stopPropagation(); setShowVoid(true); setVoidReason('') }}
               style={{ fontSize: 10, color: '#f87171', background: 'transparent', border: '1px solid #450a0a', borderRadius: 6, cursor: 'pointer', padding: '3px 10px', fontWeight: 600 }}
             >
-              Void
+              Void Record
             </button>
           )}
-          <StatusBadge status={lastRecord.status} />
         </div>
       </div>
       {showVoid && (
