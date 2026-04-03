@@ -27,6 +27,7 @@ export default function HomePage() {
       const seen = new Set()
       const recentEquip = []
       for (const r of recs) {
+        if (r.voided) continue
         if (!seen.has(r.equipment_id)) {
           seen.add(r.equipment_id)
           const eq = equip.find(e => e.id === r.equipment_id)
