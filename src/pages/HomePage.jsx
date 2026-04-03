@@ -181,7 +181,15 @@ function RecentCard({ eq, lastRecord, navigate, user, setRecent }) {
   }
 
   return (
-    <div style={{ border: '0.5px solid #1e293b', borderRadius: 10, padding: 12, marginBottom: 7, background: '#0f172a' }}>
+    <div style={{ border: '0.5px solid #1e293b', borderRadius: 10, padding: 12, marginBottom: 7, background: '#0f172a', position: 'relative' }}>
+      {!showVoid && (
+        <button
+          onClick={e => { e.stopPropagation(); setShowVoid(true); setVoidReason('') }}
+          style={{ position: 'absolute', top: 8, right: 8, fontSize: 10, color: '#f87171', background: 'transparent', border: '1px solid #450a0a', borderRadius: 6, cursor: 'pointer', padding: '4px 10px', fontWeight: 600, zIndex: 1 }}
+        >
+          Void
+        </button>
+      )}
       <div
         role="button" tabIndex="0" aria-label={`View ${eq.name}`}
         onClick={() => !showVoid && navigate(`/equipment/${eq.id}`)}
@@ -198,12 +206,6 @@ function RecentCard({ eq, lastRecord, navigate, user, setRecent }) {
           </div>
         </div>
         <StatusBadge status={lastRecord.status} />
-        <button
-          onClick={e => { e.stopPropagation(); setShowVoid(!showVoid); setVoidReason('') }}
-          style={{ fontSize: 10, color: '#f87171', background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px 6px', fontWeight: 600 }}
-        >
-          Void
-        </button>
       </div>
       {showVoid && (
         <div style={{ marginTop: 8, padding: '8px 10px', background: '#1e293b', borderRadius: 6, border: '1px solid #334155' }}>
