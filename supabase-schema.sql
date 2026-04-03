@@ -90,14 +90,18 @@ create policy "Authenticated users can update records"
 
 -- ── Status changes table (audit trail) ──────────────────────
 create table if not exists status_changes (
-  id           uuid primary key default gen_random_uuid(),
-  equipment_id uuid references equipment(id) on delete cascade,
-  old_status   text,
-  new_status   text,
-  note         text,
-  changed_by   uuid references auth.users(id),
+  id              uuid primary key default gen_random_uuid(),
+  equipment_id    uuid references equipment(id) on delete cascade,
+  old_status      text,
+  new_status      text,
+  note            text,
+  changed_by      uuid references auth.users(id),
   changed_by_name text,
-  changed_at   timestamptz default now()
+  changed_at      timestamptz default now(),
+  voided          boolean default false,
+  voided_reason   text,
+  voided_at       timestamptz,
+  voided_by       uuid references auth.users(id)
 );
 
 create index if not exists idx_status_changes_equipment on status_changes(equipment_id);
@@ -112,6 +116,12 @@ create policy "Authenticated users can view status changes"
 create policy "Users can only insert status changes as themselves"
   on status_changes for insert
   with check (changed_by = auth.uid());
+
+-- Any authenticated user can void status changes
+create policy "Authenticated users can void status changes"
+  on status_changes for update
+  using (auth.uid() is not null)
+  with check (auth.uid() is not null);
 
 -- Authenticated users can update equipment status
 create policy "Authenticated users can update equipment status"
