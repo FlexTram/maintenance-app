@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
-import { getRecordsForEquipment, getDocumentsForEquipment, getStatusChangesForEquipment, updateEquipmentStatus, voidRecord } from '../lib/sync'
+import { getRecordsForEquipment, getDocumentsForEquipment, getStatusChangesForEquipment, updateEquipmentStatus, voidRecord, voidStatusChange } from '../lib/sync'
 import { useAuth } from '../lib/auth'
 import { StatusBadge } from './HomePage'
 
@@ -84,10 +84,20 @@ export default function EquipmentPage() {
     ))
   }
 
+  async function handleVoidStatusChange(statusChangeId, reason) {
+    await voidStatusChange(statusChangeId, reason, user?.id)
+    setTimeline(prev => prev.map(t =>
+      t._type === 'status_change' && t.id === statusChangeId
+        ? { ...t, voided: true, voided_reason: reason }
+        : t
+    ))
+  }
+
   // Build active timeline — collapse all status changes into one living card
   const activeRecords = timeline.filter(t => t._type === 'record' && !t.voided)
-  const statusChanges = timeline.filter(t => t._type === 'status_change')
+  const statusChanges = timeline.filter(t => t._type === 'status_change' && !t.voided)
   const voidedRecords = timeline.filter(t => t._type === 'record' && t.voided)
+  const voidedStatusChanges = timeline.filter(t => t._type === 'status_change' && t.voided)
 
   // Build timeline with status changes collapsed into a single card
   const activeTimeline = (() => {
@@ -270,13 +280,13 @@ export default function EquipmentPage() {
       ) : (
         activeTimeline.map((entry, i) =>
           entry._type === 'status_group'
-            ? <StatusGroupCard key="status-group" changes={entry.changes} />
+            ? <StatusGroupCard key="status-group" changes={entry.changes} onVoidStatusChange={handleVoidStatusChange} />
             : <RecordCard key={entry.localId || entry.id} record={entry} onVoid={handleVoid} onEdit={handleEdit} />
         )
       )}
 
       {/* Voided Records */}
-      {voidedRecords.length > 0 && (
+      {(voidedRecords.length > 0 || voidedStatusChanges.length > 0) && (
         <details style={{ marginTop: '1.5rem' }}>
           <summary style={{
             fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
@@ -284,11 +294,14 @@ export default function EquipmentPage() {
             display: 'flex', alignItems: 'center', gap: 8,
           }}>
             <span style={{ fontSize: 10, transition: 'transform 0.2s' }}>▶</span>
-            Voided Records ({voidedRecords.length})
+            Voided Records ({voidedRecords.length + voidedStatusChanges.length})
           </summary>
           <div style={{ marginTop: 8 }}>
             {voidedRecords.map(entry => (
               <RecordCard key={entry.localId || entry.id} record={entry} onVoid={handleVoid} onEdit={handleEdit} />
+            ))}
+            {voidedStatusChanges.map(sc => (
+              <VoidedStatusChangeCard key={sc.id} change={sc} />
             ))}
           </div>
         </details>
@@ -442,12 +455,15 @@ function RecordCard({ record: r, onVoid, onEdit }) {
   )
 }
 
-function StatusGroupCard({ changes }) {
-  const [expanded, setExpanded] = useState(false)
+const statusLabel = s => (s || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+const statusColor = s => s === 'in_service' ? '#4ade80' : s === 'out_of_service' ? '#f87171' : '#fb923c'
+const statusBg = s => s === 'in_service' ? '#052e16' : s === 'out_of_service' ? '#450a0a' : '#431407'
 
-  const statusLabel = s => (s || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-  const statusColor = s => s === 'in_service' ? '#4ade80' : s === 'out_of_service' ? '#f87171' : '#fb923c'
-  const statusBg = s => s === 'in_service' ? '#052e16' : s === 'out_of_service' ? '#450a0a' : '#431407'
+function StatusGroupCard({ changes, onVoidStatusChange }) {
+  const [expanded, setExpanded] = useState(false)
+  const [voidingId, setVoidingId] = useState(null)
+  const [voidReason, setVoidReason] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   // Latest change determines the card's color
   const latest = changes[0]
@@ -457,9 +473,20 @@ function StatusGroupCard({ changes }) {
     ? new Date(latest.changed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : ''
 
+  async function confirmVoid(sc) {
+    if (!voidReason.trim()) return
+    setSubmitting(true)
+    try {
+      await onVoidStatusChange(sc.id, voidReason.trim())
+    } catch (_) { /* handled in sync */ }
+    setSubmitting(false)
+    setVoidingId(null)
+    setVoidReason('')
+  }
+
   return (
     <div
-      onClick={() => setExpanded(!expanded)}
+      onClick={() => { if (!voidingId) setExpanded(!expanded) }}
       style={{
         border: `1px solid ${color}40`, borderRadius: 8, padding: '8px 12px',
         marginBottom: 8, background: bg, cursor: 'pointer',
@@ -487,16 +514,78 @@ function StatusGroupCard({ changes }) {
               ? new Date(sc.changed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
               : ''
             return (
-              <div key={sc.id || i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 12 }}>
-                <span style={{ color: statusColor(sc.old_status) }}>{statusLabel(sc.old_status)}</span>
-                <span style={{ color: '#64748b' }}>→</span>
-                <span style={{ color: statusColor(sc.new_status) }}>{statusLabel(sc.new_status)}</span>
-                {sc.note && <span style={{ color: '#64748b' }}>· {sc.note}</span>}
-                {sc.changed_by_name && <span style={{ color: '#475569' }}>· {sc.changed_by_name}</span>}
-                <span style={{ color: '#475569' }}>{d}</span>
+              <div key={sc.id || i} style={{ padding: '4px 0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+                  <span style={{ color: statusColor(sc.old_status) }}>{statusLabel(sc.old_status)}</span>
+                  <span style={{ color: '#64748b' }}>→</span>
+                  <span style={{ color: statusColor(sc.new_status) }}>{statusLabel(sc.new_status)}</span>
+                  {sc.note && <span style={{ color: '#64748b' }}>· {sc.note}</span>}
+                  {sc.changed_by_name && <span style={{ color: '#475569' }}>· {sc.changed_by_name}</span>}
+                  <span style={{ color: '#475569' }}>{d}</span>
+                  <button
+                    onClick={e => { e.stopPropagation(); setVoidingId(voidingId === sc.id ? null : sc.id); setVoidReason('') }}
+                    style={{ marginLeft: 'auto', fontSize: 10, color: '#f87171', background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px 6px', fontWeight: 600 }}
+                  >
+                    Void
+                  </button>
+                </div>
+                {voidingId === sc.id && (
+                  <div onClick={e => e.stopPropagation()} style={{ marginTop: 6, padding: '8px 10px', background: '#1e293b', borderRadius: 6, border: '1px solid #334155' }}>
+                    <textarea
+                      placeholder="Reason for voiding…"
+                      value={voidReason}
+                      onChange={e => setVoidReason(e.target.value)}
+                      rows={2}
+                      style={{ width: '100%', fontSize: 13, background: '#0f172a', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 6, padding: 8, resize: 'vertical' }}
+                    />
+                    <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                      <button
+                        disabled={!voidReason.trim() || submitting}
+                        onClick={() => confirmVoid(sc)}
+                        style={{ flex: 1, padding: '6px 0', fontSize: 12, fontWeight: 700, borderRadius: 6, border: 'none', cursor: 'pointer', background: '#ef4444', color: '#fff', opacity: !voidReason.trim() || submitting ? 0.4 : 1 }}
+                      >
+                        {submitting ? 'Voiding…' : 'Confirm Void'}
+                      </button>
+                      <button
+                        onClick={() => { setVoidingId(null); setVoidReason('') }}
+                        style={{ flex: 1, padding: '6px 0', fontSize: 12, fontWeight: 600, borderRadius: 6, border: '1px solid #334155', background: 'transparent', color: '#94a3b8', cursor: 'pointer' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )
           })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function VoidedStatusChangeCard({ change }) {
+  const color = statusColor(change.new_status)
+  const d = change.changed_at
+    ? new Date(change.changed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : ''
+  return (
+    <div style={{ opacity: 0.5, background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: '8px 12px', marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 4, background: `${color}20`, color, textDecoration: 'line-through' }}>
+          Status Change
+        </span>
+        <span style={{ fontSize: 10, fontWeight: 700, color: '#f87171', background: '#450a0a', padding: '2px 6px', borderRadius: 4 }}>Voided</span>
+      </div>
+      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4, textDecoration: 'line-through' }}>
+        {statusLabel(change.old_status)} → {statusLabel(change.new_status)}
+        {change.note && <span> · {change.note}</span>}
+        {change.changed_by_name && <span> · {change.changed_by_name}</span>}
+        <span> · {d}</span>
+      </div>
+      {change.voided_reason && (
+        <div style={{ fontSize: 12, color: '#f87171', fontStyle: 'italic', marginTop: 4 }}>
+          Void reason: {change.voided_reason}
         </div>
       )}
     </div>

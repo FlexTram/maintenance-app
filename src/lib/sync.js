@@ -296,6 +296,25 @@ export async function updateEquipmentStatus(equipmentId, newStatus, note, userId
   }
 }
 
+// ── Void Status Changes ─────────────────────────────────────
+
+/**
+ * Void a status change entry. The record stays in the database
+ * but is flagged as voided with a reason, timestamp, and user.
+ */
+export async function voidStatusChange(statusChangeId, reason, userId) {
+  const now = new Date().toISOString()
+  const { error } = await supabase
+    .from('status_changes')
+    .update({ voided: true, voided_reason: reason, voided_at: now, voided_by: userId })
+    .eq('id', statusChangeId)
+
+  if (error) {
+    console.error('[sync] Failed to void status change in Supabase:', error.message)
+    throw error
+  }
+}
+
 // ── Status Changes ────────────────────────────────────────────
 
 /**
