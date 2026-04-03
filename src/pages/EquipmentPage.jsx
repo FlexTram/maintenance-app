@@ -390,7 +390,7 @@ function RecordCard({ record: r, onVoid, onEdit }) {
             </button>
             <button onClick={() => setShowVoidConfirm(true)}
               style={{ fontSize: 12, color: '#f87171', background: 'transparent', border: '1px solid #450a0a', borderRadius: 8, padding: '8px 14px', minHeight: 40, cursor: 'pointer', width: 'auto' }}>
-              Void
+              Void Record
             </button>
           </div>
         )}
@@ -529,7 +529,7 @@ function StatusGroupCard({ changes, onVoidStatusChange }) {
                     onClick={e => { e.stopPropagation(); setVoidingId(voidingId === sc.id ? null : sc.id); setVoidReason('') }}
                     style={{ marginLeft: 'auto', fontSize: 10, color: '#f87171', background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px 6px', fontWeight: 600 }}
                   >
-                    Void
+                    Void Record
                   </button>
                 </div>
                 {voidingId === sc.id && (
