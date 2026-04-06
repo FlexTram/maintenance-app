@@ -195,7 +195,19 @@ export async function flushPendingRecords() {
   if (!pending.length) return
 
   await Promise.all(pending.map(async record => {
-    const { localId, synced, created_at, ...supabaseRecord } = record
+    // Only send columns that exist in the maintenance_records table
+    const supabaseRecord = {
+      id: record.id,
+      equipment_id: record.equipment_id,
+      technician_name: record.technician_name,
+      service_date: record.service_date,
+      status: record.status,
+      inspection_notes: record.inspection_notes || null,
+      parts_replaced: record.parts_replaced || null,
+      created_by: record.created_by || null,
+      record_type: record.record_type || null,
+      form_data: record.form_data || null,
+    }
 
     const { data, error } = await supabase
       .from('maintenance_records')
