@@ -191,8 +191,14 @@ export async function getAllRecords() {
 export async function flushPendingRecords() {
   if (!navigator.onLine) return
 
-  const pending = await db.records.where('synced').equals(0).toArray()
+  // Try indexed query first, then fall back to full scan for records missing the synced index
+  let pending = await db.records.where('synced').equals(0).toArray()
+  if (!pending.length) {
+    const all = await db.records.toArray()
+    pending = all.filter(r => !r.synced || r.synced === 0)
+  }
   if (!pending.length) return
+  console.log(`[sync] Flushing ${pending.length} pending records...`)
 
   await Promise.all(pending.map(async record => {
     // Only send columns that exist in the maintenance_records table
