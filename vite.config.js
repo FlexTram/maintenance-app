@@ -27,6 +27,9 @@ export default defineConfig({
         ]
       },
       workbox: {
+        // Force new service worker to activate immediately
+        skipWaiting: true,
+        clientsClaim: true,
         // Cache the app shell and all assets
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB limit for flextram.png
