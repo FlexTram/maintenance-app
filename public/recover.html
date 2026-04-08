@@ -86,13 +86,23 @@ async function init() {
     }
     log('Authenticated as: ' + (session.user.user_metadata?.full_name || session.user.email));
 
-    // Open IndexedDB
+    // List ALL IndexedDB databases on this device
+    if (indexedDB.databases) {
+      const allDBs = await indexedDB.databases();
+      log('All IndexedDB databases on this device:');
+      allDBs.forEach(d => log('  - ' + d.name + ' (version ' + d.version + ')'));
+      if (allDBs.length === 0) log('  (none found)');
+    } else {
+      log('(browser does not support listing databases)');
+    }
+
+    // Try opening the database
     db = await openDB();
     const storeNames = Array.from(db.objectStoreNames);
-    log('IndexedDB stores: ' + storeNames.join(', '));
+    log('MaintenanceApp stores: ' + storeNames.join(', '));
 
     if (!storeNames.includes('records')) {
-      statusEl.innerHTML = '<span class="error">No records store found in IndexedDB.</span>';
+      statusEl.innerHTML = '<span class="error">No records store found. If you use the app from a HOME SCREEN icon, open this recovery page FROM the app instead: tap the share button inside the app, paste this URL in the address bar.</span>';
       return;
     }
 
