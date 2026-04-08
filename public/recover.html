@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Record Recovery</title>
+<style>
+  body { font-family: system-ui; background: #0a0f1a; color: #e2e8f0; padding: 20px; margin: 0; }
+  h1 { font-size: 18px; color: #f59e0b; }
+  .status { padding: 12px; border-radius: 8px; margin: 10px 0; background: #1e293b; font-size: 14px; }
+  .record { padding: 10px; border: 1px solid #334155; border-radius: 8px; margin: 8px 0; font-size: 13px; }
+  .record .name { font-weight: 600; color: #f1f5f9; }
+  .record .meta { color: #94a3b8; margin-top: 4px; }
+  .success { color: #4ade80; }
+  .error { color: #f87171; }
+  .pending { color: #fb923c; }
+  button { width: 100%; padding: 14px; font-size: 16px; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; margin: 10px 0; }
+  .btn-primary { background: #f59e0b; color: #0a0f1a; }
+  .btn-primary:disabled { opacity: 0.4; }
+  #log { white-space: pre-wrap; font-size: 12px; color: #94a3b8; background: #0f172a; padding: 10px; border-radius: 8px; margin-top: 10px; max-height: 300px; overflow-y: auto; }
+</style>
+</head>
+<body>
+<h1>FLEXTRAM Record Recovery</h1>
+<div class="status" id="status">Checking for pending records...</div>
+<div id="records"></div>
+<button class="btn-primary" id="syncBtn" style="display:none" onclick="syncRecords()">Push Records to Cloud</button>
+<div id="log"></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const SUPABASE_URL = 'https://lpsumqpbvhphtodffmeo.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_y3yee1jSKZbr75-xMU9bkw_LgMMn_kp';
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const statusEl = document.getElementById('status');
+const recordsEl = document.getElementById('records');
+const syncBtn = document.getElementById('syncBtn');
+const logEl = document.getElementById('log');
+
+function log(msg) {
+  logEl.textContent += msg + '\n';
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+// Open IndexedDB directly (same DB the app uses)
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('MaintenanceDB');
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => resolve(req.result);
+  });
+}
+
+function getAll(db, storeName) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const store = tx.objectStore(storeName);
+    const req = store.getAll();
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => resolve(req.result);
+  });
+}
+
+function putRecord(db, storeName, record) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite');
+    const store = tx.objectStore(storeName);
+    const req = store.put(record);
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => resolve(req.result);
+  });
+}
+
+let pendingRecords = [];
+let db = null;
+
+async function init() {
+  try {
+    // Check auth
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      statusEl.innerHTML = '<span class="error">Not logged in. Open the main app first, sign in, then come back here.</span>';
+      return;
+    }
+    log('Authenticated as: ' + (session.user.user_metadata?.full_name || session.user.email));
+
+    // Open IndexedDB
+    db = await openDB();
+    const storeNames = Array.from(db.objectStoreNames);
+    log('IndexedDB stores: ' + storeNames.join(', '));
+
+    if (!storeNames.includes('records')) {
+      statusEl.innerHTML = '<span class="error">No records store found in IndexedDB.</span>';
+      return;
+    }
+
+    const allRecords = await getAll(db, 'records');
+    log('Total records in IndexedDB: ' + allRecords.length);
+
+    pendingRecords = allRecords.filter(r => !r.synced || r.synced === 0);
+    log('Pending (unsynced) records: ' + pendingRecords.length);
+
+    if (pendingRecords.length === 0) {
+      statusEl.innerHTML = '<span class="success">No pending records found. All records are synced!</span>';
+      // Show all records for reference
+      allRecords.forEach(r => {
+        log(`  [synced=${r.synced}] ${r.technician_name} - ${r.service_date} - ${r.record_type || 'unknown'} - equipment: ${r.equipment_id}`);
+      });
+      return;
+    }
+
+    statusEl.innerHTML = `<span class="pending">Found ${pendingRecords.length} pending records ready to sync</span>`;
+    syncBtn.style.display = 'block';
+
+    pendingRecords.forEach(r => {
+      const div = document.createElement('div');
+      div.className = 'record';
+      div.id = 'rec-' + (r.localId || r.id);
+      div.innerHTML = `
+        <div class="name">${r.technician_name || 'Unknown'} — ${r.record_type || 'record'}</div>
+        <div class="meta">${r.service_date || 'no date'} | Equipment: ${r.equipment_id?.slice(0,8) || 'unknown'}...</div>
+        <div class="meta pending">Pending sync</div>
+      `;
+      recordsEl.appendChild(div);
+    });
+
+  } catch (e) {
+    statusEl.innerHTML = '<span class="error">Error: ' + e.message + '</span>';
+    log('Error: ' + e.stack);
+  }
+}
+
+window.syncRecords = async function() {
+  syncBtn.disabled = true;
+  syncBtn.textContent = 'Syncing...';
+  let successCount = 0;
+  let failCount = 0;
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    log('ERROR: No auth session');
+    return;
+  }
+
+  for (const record of pendingRecords) {
+    const recEl = document.getElementById('rec-' + (record.localId || record.id));
+    try {
+      // Only send known columns
+      const payload = {
+        id: record.id,
+        equipment_id: record.equipment_id,
+        technician_name: record.technician_name,
+        service_date: record.service_date,
+        status: record.status,
+        inspection_notes: record.inspection_notes || null,
+        parts_replaced: record.parts_replaced || null,
+        created_by: record.created_by || null,
+        record_type: record.record_type || null,
+        form_data: record.form_data || null,
+      };
+
+      log('Pushing: ' + record.technician_name + ' / ' + record.service_date + ' / ' + record.record_type);
+      log('Payload: ' + JSON.stringify(payload).slice(0, 200) + '...');
+
+      const { data, error } = await supabase
+        .from('maintenance_records')
+        .insert(payload)
+        .select()
+        .single();
+
+      if (error) {
+        log('FAILED: ' + error.message + ' | code: ' + error.code + ' | details: ' + error.details);
+        if (recEl) recEl.querySelector('.pending').innerHTML = '<span class="error">Failed: ' + error.message + '</span>';
+        failCount++;
+      } else {
+        log('SUCCESS: synced as ' + data.id);
+        // Update IndexedDB to mark as synced
+        if (db && record.localId) {
+          record.synced = 1;
+          record.id = data.id;
+          await putRecord(db, 'records', record);
+        }
+        if (recEl) recEl.querySelector('.pending').innerHTML = '<span class="success">Synced!</span>';
+        successCount++;
+      }
+    } catch (e) {
+      log('EXCEPTION: ' + e.message);
+      failCount++;
+    }
+  }
+
+  syncBtn.textContent = `Done — ${successCount} synced, ${failCount} failed`;
+  statusEl.innerHTML = `<span class="${failCount ? 'error' : 'success'}">${successCount} records synced${failCount ? ', ' + failCount + ' failed (see log)' : '!'}</span>`;
+};
+
+init();
+</script>
+</body>
+</html>
