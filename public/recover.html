@@ -47,7 +47,7 @@ function log(msg) {
 // Open IndexedDB directly (same DB the app uses)
 function openDB() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open('MaintenanceDB');
+    const req = indexedDB.open('MaintenanceApp');
     req.onerror = () => reject(req.error);
     req.onsuccess = () => resolve(req.result);
   });
