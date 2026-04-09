@@ -130,6 +130,7 @@ export default function BatchDropOffForm() {
     setErrors([])
     setSaving(true)
     try {
+      let syncFailed = false
       // Upload photos if online
       const uploadedPhotoUrls = {} // { `${equipmentId}_${condKey}`: ['url1', ...] }
       const photoEntries = Object.entries(tramPhotos).filter(([, arr]) => arr.length > 0)
@@ -163,7 +164,7 @@ export default function BatchDropOffForm() {
           }
         }
 
-        await saveRecord({
+        const result = await saveRecord({
           equipment_id: tram.id,
           technician_name: tech,
           service_date: eventDate,
@@ -183,8 +184,12 @@ export default function BatchDropOffForm() {
             customer_signature: customerSig || null,
           },
         })
+        if (!result.didSync) syncFailed = true
       }
 
+      if (syncFailed) {
+        alert('Records saved to your device but failed to sync to the cloud. They will appear on the home screen for manual sync.')
+      }
       navigate('/')
     } catch (err) {
       console.error('Failed to save drop-off:', err)

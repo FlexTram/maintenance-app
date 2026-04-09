@@ -108,12 +108,15 @@ export default function RepairForm() {
           user?.id, user?.user_metadata?.full_name
         )
       } else {
-        await saveRecord({
+        const result = await saveRecord({
           equipment_id: id, technician_name: tech, service_date: date,
           status, inspection_notes: summary || 'Repair record submitted',
           parts_replaced: [], created_by: user?.id,
           record_type: 'repair', form_data: formData,
         })
+        if (!result.didSync) {
+          alert('Record saved to your device but failed to sync to the cloud. It will appear on the home screen for manual sync.')
+        }
       }
       navigate(`/equipment/${id}`)
     } catch (err) {

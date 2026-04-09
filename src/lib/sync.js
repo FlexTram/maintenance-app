@@ -114,9 +114,13 @@ export async function saveRecord(record) {
   const localId = await db.records.add(localRecord)
 
   // Attempt immediate sync
-  await flushPendingRecords()
+  const result = await flushPendingRecords()
 
-  return { ...localRecord, localId }
+  // Check if this record synced
+  const updated = await db.records.get(localId)
+  const didSync = updated?.synced === 1
+
+  return { ...localRecord, localId, didSync, syncResult: result }
 }
 
 /**
@@ -189,7 +193,7 @@ export async function getAllRecords() {
  * Safe to call at any time — silently skips if offline.
  */
 export async function flushPendingRecords() {
-  if (!navigator.onLine) return
+  if (!navigator.onLine) return { synced: 0, failed: 0, pending: 0 }
 
   // Try indexed query first, then fall back to full scan for records missing the synced index
   let pending = await db.records.where('synced').equals(0).toArray()
@@ -197,9 +201,10 @@ export async function flushPendingRecords() {
     const all = await db.records.toArray()
     pending = all.filter(r => !r.synced || r.synced === 0)
   }
-  if (!pending.length) return
+  if (!pending.length) return { synced: 0, failed: 0, pending: 0 }
   console.log(`[sync] Flushing ${pending.length} pending records...`)
 
+  let synced = 0, failed = 0
   await Promise.all(pending.map(async record => {
     // Only send columns that exist in the maintenance_records table
     const supabaseRecord = {
@@ -223,6 +228,7 @@ export async function flushPendingRecords() {
 
     if (error) {
       console.error('[sync] Failed to sync record:', error.message)
+      failed++
       await db.syncErrors.add({
         record_id: record.id,
         local_id: record.localId,
@@ -231,9 +237,24 @@ export async function flushPendingRecords() {
         failed_at: new Date().toISOString(),
       })
     } else if (data) {
-      await db.records.update(localId, { synced: 1, id: data.id })
+      await db.records.update(record.localId, { synced: 1, id: data.id })
+      synced++
     }
   }))
+  console.log(`[sync] Done: ${synced} synced, ${failed} failed`)
+  return { synced, failed, pending: pending.length }
+}
+
+/**
+ * Get count of pending (unsynced) records.
+ */
+export async function getPendingCount() {
+  let count = await db.records.where('synced').equals(0).count()
+  if (count === 0) {
+    const all = await db.records.toArray()
+    count = all.filter(r => !r.synced || r.synced === 0).length
+  }
+  return count
 }
 
 /**

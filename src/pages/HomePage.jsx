@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { getAllRecords, getAllEquipment, voidRecord } from '../lib/sync'
+import { getAllRecords, getAllEquipment, voidRecord, getPendingCount, flushPendingRecords } from '../lib/sync'
 
 export default function HomePage() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const [recent,    setRecent]    = useState([])
   const [stats,     setStats]     = useState({ inService: 0, outOfService: 0, pending: 0 })
+  const [pendingSync, setPendingSync] = useState(0)
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -36,10 +39,24 @@ export default function HomePage() {
         if (recentEquip.length >= 4) break
       }
       setRecent(recentEquip)
+
+      // Check for unsynced records
+      const unsyncedCount = await getPendingCount()
+      setPendingSync(unsyncedCount)
     }
     load()
     return () => { cancelled = true }
   }, [user])
+
+  async function handleManualSync() {
+    setSyncing(true)
+    setSyncResult(null)
+    const result = await flushPendingRecords()
+    const remaining = await getPendingCount()
+    setPendingSync(remaining)
+    setSyncResult(result)
+    setSyncing(false)
+  }
 
   const firstName = user?.user_metadata?.full_name?.split(' ')[0] || 'there'
 
@@ -67,6 +84,34 @@ export default function HomePage() {
           <div style={{ fontSize: 16, fontWeight: 500, color: '#f1f5f9', marginBottom: 2 }}>Hi, {firstName}</div>
           <div style={{ fontSize: 13, color: '#475569' }}>Here's your equipment overview</div>
         </div>
+
+        {pendingSync > 0 && (
+          <div style={{ background: '#431407', border: '1px solid #f59e0b', borderRadius: 10, padding: 14, marginBottom: 14 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#fb923c', marginBottom: 6 }}>
+              {pendingSync} record{pendingSync > 1 ? 's' : ''} waiting to sync
+            </div>
+            <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10 }}>
+              These records are saved on your device but haven't been uploaded to the cloud yet.
+            </div>
+            {syncResult && syncResult.failed > 0 && (
+              <div style={{ fontSize: 12, color: '#f87171', marginBottom: 8 }}>
+                {syncResult.failed} record{syncResult.failed > 1 ? 's' : ''} failed to sync. Try again or contact your admin.
+              </div>
+            )}
+            {syncResult && syncResult.synced > 0 && (
+              <div style={{ fontSize: 12, color: '#4ade80', marginBottom: 8 }}>
+                {syncResult.synced} record{syncResult.synced > 1 ? 's' : ''} synced successfully!
+              </div>
+            )}
+            <button
+              onClick={handleManualSync}
+              disabled={syncing}
+              style={{ width: '100%', padding: 10, fontSize: 14, fontWeight: 700, background: '#f59e0b', color: '#0a0f1a', border: 'none', borderRadius: 8, cursor: 'pointer', opacity: syncing ? 0.5 : 1 }}
+            >
+              {syncing ? 'Syncing...' : 'Sync Now'}
+            </button>
+          </div>
+        )}
 
         <img
           src="/heavy_repairs_homepage.png"
