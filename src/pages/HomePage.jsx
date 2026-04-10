@@ -110,6 +110,9 @@ export default function HomePage() {
             >
               {syncing ? 'Syncing...' : 'Sync Now'}
             </button>
+            <a href="/recover.html" style={{ display: 'block', textAlign: 'center', fontSize: 12, color: '#64748b', marginTop: 8 }}>
+              Advanced recovery
+            </a>
           </div>
         )}
 
