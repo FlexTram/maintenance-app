@@ -207,8 +207,8 @@ export async function flushPendingRecords() {
   let synced = 0, failed = 0
   await Promise.all(pending.map(async record => {
     // Only send columns that exist in the maintenance_records table
+    // Skip id — let Supabase generate it to avoid invalid UUID errors
     const supabaseRecord = {
-      id: record.id,
       equipment_id: record.equipment_id,
       technician_name: record.technician_name,
       service_date: record.service_date,
