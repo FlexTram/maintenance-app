@@ -99,7 +99,21 @@ App is **deployed to production** and in field testing with technicians. All cor
 ## Pending Tasks
 - **QR codes** — print and label fleet once ready (waiting on field testing feedback)
 - **Supabase MCP in VS Code** — OAuth works in CLI but VS Code extension needs a new session to pick up MCP tools. Start a new conversation if MCP tools aren't available.
-- **Sync error surface** — `syncErrors` IndexedDB table is being populated on failures; no UI to view it yet. Could add a sync health screen or badge on HomePage later.
+
+## Completed (Session 8 — April 10)
+- ✅ Sync failure alerts — homepage shows amber banner with record count and "Sync Now" manual retry button when records are pending sync
+- ✅ Immediate save feedback — all forms (inspection, repair, drop-off) show alert if record fails to sync after saving
+- ✅ Fixed `localId` bug in `flushPendingRecords` — was referencing undefined variable, silently breaking sync completions
+- ✅ Fixed sync insert — only sends known DB columns (extra IndexedDB fields were causing 400 errors)
+- ✅ Dropped client-generated `id` from sync insert — let Supabase generate UUIDs to avoid invalid UUID format errors
+- ✅ Fallback pending scan — `flushPendingRecords` falls back to full table scan if indexed query misses records with missing `synced` field
+- ✅ `getPendingCount()` helper added for homepage sync status check
+- ✅ Records sync-down from Supabase on page load — `getAllRecords()` and `getRecordsForEquipment()` now pull from Supabase when online to pick up voided flags and cross-device changes
+- ✅ Voided status changes filtered from RecordsPage "All records" timeline
+- ✅ Voided records filtered from recently serviced list on homepage
+- ✅ PWA service worker `skipWaiting` + `clientsClaim` — forces new code to activate immediately on deploy
+- ✅ Standalone recovery page (`/recover.html`) — bypasses PWA cache, reads IndexedDB directly, shows pending records with push-to-cloud button
+- ✅ Quick Start Guide for field technicians (`QUICK_START_GUIDE.md`)
 
 ## Completed (Session 7 — April 3)
 - ✅ Void status change entries — individual status changes can be voided from expanded status group card with required reason, matching service record void pattern
@@ -138,9 +152,9 @@ App is **deployed to production** and in field testing with technicians. All cor
 - `src/lib/supabase.js` – Supabase client
 - `src/lib/auth.jsx` – Auth context + Google OAuth
 - `src/lib/db.js` – Local IndexedDB helpers
-- `src/lib/sync.js` – Sync logic; `getEquipmentByIdentifier()` (fuzzy search), `saveRecord()`, `editRecord()`, `voidRecord()`, `voidStatusChange()`, `flushPendingRecords()` (logs failures to `syncErrors`), `getStatusChangesForEquipment()`, `getAllStatusChanges()`
+- `src/lib/sync.js` – Sync logic; `getEquipmentByIdentifier()` (fuzzy search), `saveRecord()` (returns `didSync`), `editRecord()`, `voidRecord()`, `voidStatusChange()`, `flushPendingRecords()` (returns sync/fail counts, logs failures to `syncErrors`), `getPendingCount()`, `getStatusChangesForEquipment()`, `getAllStatusChanges()`
 - `src/pages/LoginPage.jsx` – Login screen with Flextram artwork
-- `src/pages/HomePage.jsx` – Dashboard with 3 stat cards (In Service / Out of Service / Pending), icons on nav buttons
+- `src/pages/HomePage.jsx` – Dashboard with 3 stat cards (In Service / Out of Service / Pending), sync alert banner with manual retry, icons on nav buttons
 - `src/pages/RecordsPage.jsx` – Fleet equipment list + all records timeline with color-coded filter tabs
 - `src/pages/DocsPage.jsx` – Reference docs page (hardcoded, no Supabase needed)
 - `src/pages/EquipmentPage.jsx` – Vehicle profile card + status toggle + timeline (Active Records + Voided Records + status group cards)
