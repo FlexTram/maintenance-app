@@ -75,8 +75,22 @@ vercel --prod --yes
 ### status_changes table
 Full audit trail of every status change: `id`, `equipment_id`, `old_status`, `new_status`, `note`, `changed_by`, `changed_by_name`, `changed_at`, `voided` (boolean), `voided_reason`, `voided_at`, `voided_by`
 
+### events table (Session 9)
+Event container (e.g. a festival, tournament). `(name, start_date)` is unique.
+`id`, `name`, `client`, `location`, `start_date`, `end_date`, `status` (active/completed/cancelled), `notes`, `created_by`, `created_at`, `closed_at`
+
+### deployments table (Session 9)
+One row per (event × tram). Links drop-off ↔ pick-up and tracks "where is this tram right now". `(event_id, equipment_id)` is unique.
+`id`, `event_id`, `equipment_id`, `drop_off_record_id`, `pick_up_record_id`, `dropped_off_at`, `picked_up_at`, `status` (deployed/returned/lost), `created_at`
+
+### deployments_active view (Session 9)
+Read-only convenience view: `SELECT * FROM deployments_active` returns only `status='deployed'` rows joined with event name/location/client. Used for master list.
+
 ### documents table
 `id`, `equipment_id` (NULL = fleet-wide), `title`, `url`, `category`, `subcategory`, `created_at`
+
+### maintenance_records.record_type
+Allowed values: `inspection`, `repair`, `dropoff`, `pickup` (pickup added Session 9).
 
 ## Documents
 Static PDFs served from **Supabase Storage** (public `documents` bucket, CacheFirst PWA caching for offline access). Living/collaborative docs stay on Google Drive.
@@ -99,6 +113,31 @@ App is **deployed to production** and in field testing with technicians. All cor
 ## Pending Tasks
 - **QR codes** — print and label fleet once ready (waiting on field testing feedback)
 - **Supabase MCP in VS Code** — OAuth works in CLI but VS Code extension needs a new session to pick up MCP tools. Start a new conversation if MCP tools aren't available.
+
+## Completed (Session 9 — April 16)
+
+### Phase 1 — UX pass from field tech feedback (commit `2f22cf2`)
+- ✅ Natural sort for trams everywhere — TRAM-01..32 then ADA-01, ADA-02, retired last. Shared helper `sortTrams()` in `sync.js`
+- ✅ Drop-off form collapsible per-tram accordion — each tram is a tap-to-expand card with damage/photo chips in the header; Expand all / Collapse all buttons
+- ✅ Drop-off records grouped as one folder card on RecordsPage timeline — shows event name, tram count, damage count, expands to per-tram rows (was flooding the timeline with one entry per tram)
+- ✅ Fixed edit-routes-to-repair bug — edit button on drop-off records now opens dedicated `DropOffEditForm` with read-only event info + editable conditions/photos (was silently falling through to repair form)
+- ✅ Photo cap bumped 3 → 6 per section with live `n/max` counter. `PhotoSection` takes a `max` prop for future overrides
+- ✅ EquipmentPage nav: `← Back` (history) + `Home` as distinct pill buttons with icons
+
+### Phase 2 — Deployment lifecycle (commit `c3add87`)
+- ✅ Schema: `events` and `deployments` tables + `deployments_active` view, all with RLS, indexes, CASCADE on event delete. Migration applied directly to prod (Supabase branching failed replay on this project; tried twice)
+- ✅ Backfilled existing 16 drop-off records into 1 event ("Coachella/ Stagecoach 2026") and 8 deployments. All backfill SQL idempotent with `ON CONFLICT DO NOTHING`
+- ✅ Cleaned up 8 byte-identical duplicate drop-off records from the Session 8 sync retry bug (same `synced_at` second, same tech, same form_data). Voided with reason "Duplicate from sync retry on 2026-04-10" — preserved for audit, hidden from UI. Every deployment verified pointing to a non-voided record
+- ✅ IndexedDB version 3: adds `events` and `deployments` stores for offline master list. Additive — existing data untouched
+- ✅ `record_type` CHECK constraint extended to accept `'pickup'`
+- ✅ Master list view — RecordsPage Fleet Equipment cards now show a green 📍 pill with event name + location when a tram is deployed. New "Deployed" filter tab shows only currently-out trams
+- ✅ Pick-Up form at `/pickup`: 4-step flow (Event → Select Trams → Condition Check → Sign Off) with **side-by-side drop-off comparison** on every condition item (drop-off status + notes + thumbnail photos shown in a dashed-border box above the pick-up entry). Auto-detects "new damage" (good at drop-off, damage at pickup) and flags it with a red chip. Supports partial pickup. Optional "Mark event complete" checkbox on sign-off; auto-closes event when all deployments returned
+- ✅ Pick-up page hint — "Don't see a tram? Log drop-off first" button redirects to `/dropoff` for the "physically there but never logged" case
+- ✅ Home page sync status strip — shows `{localCount} records on this device · {pendingCount} pending · Last push: {n} ({failed} failed) · {time}`. Helps spot device/cloud drift early. `flushPendingRecords` now stashes last result to localStorage; new helpers `getLastSyncResult()`, `getLocalRecordCount()`
+- ✅ `saveRecord()` now returns the fully-updated record (including Supabase-assigned `id` after sync) so pick-up can link `pick_up_record_id` on the deployment
+
+### Known data-hygiene note
+Coachella 2026 drop-off shows 8 trams in the DB, but field tech recalls 16 physically dropped off. Data confirms only 8 ever reached Supabase (each logged twice → 16 rows → cleaned up to 8). The other 8 trams may be stuck on Riley Cooper's device in IndexedDB — have him open `/recover.html` on that phone to check/push.
 
 ## Completed (Session 8 — April 10)
 - ✅ Sync failure alerts — homepage shows amber banner with record count and "Sync Now" manual retry button when records are pending sync
@@ -152,16 +191,18 @@ App is **deployed to production** and in field testing with technicians. All cor
 - `src/lib/supabase.js` – Supabase client
 - `src/lib/auth.jsx` – Auth context + Google OAuth
 - `src/lib/db.js` – Local IndexedDB helpers
-- `src/lib/sync.js` – Sync logic; `getEquipmentByIdentifier()` (fuzzy search), `saveRecord()` (returns `didSync`), `editRecord()`, `voidRecord()`, `voidStatusChange()`, `flushPendingRecords()` (returns sync/fail counts, logs failures to `syncErrors`), `getPendingCount()`, `getStatusChangesForEquipment()`, `getAllStatusChanges()`
+- `src/lib/sync.js` – Sync logic; `sortTrams()`, `getEquipmentByIdentifier()` (fuzzy search), `saveRecord()` (returns updated record with Supabase `id` after sync + `didSync`), `editRecord()`, `voidRecord()`, `voidStatusChange()`, `flushPendingRecords()` (returns sync/fail counts, logs failures to `syncErrors`, stashes last result to localStorage), `getPendingCount()`, `getLastSyncResult()`, `getLocalRecordCount()`, `getAllEvents()`, `getAllDeployments()`, `getActiveDeploymentMap()`, `getActiveEventsWithDeployments()`, `markDeploymentReturned()`, `closeEvent()`, `areAllDeploymentsReturned()`, `getStatusChangesForEquipment()`, `getAllStatusChanges()`
 - `src/pages/LoginPage.jsx` – Login screen with Flextram artwork
-- `src/pages/HomePage.jsx` – Dashboard with 3 stat cards (In Service / Out of Service / Pending), sync alert banner with manual retry, icons on nav buttons
-- `src/pages/RecordsPage.jsx` – Fleet equipment list + all records timeline with color-coded filter tabs
+- `src/pages/HomePage.jsx` – Dashboard with 3 stat cards (In Service / Out of Service / Pending), sync alert banner with manual retry, sync status strip (device record count + last push), Log Drop-Off + Log Pick-Up buttons, icons on nav buttons
+- `src/pages/RecordsPage.jsx` – Fleet equipment list (with 📍 deployment pill per tram) + all records timeline with color-coded filter tabs (includes "Deployed" filter). Drop-off records grouped into one expandable folder card per event.
 - `src/pages/DocsPage.jsx` – Reference docs page (hardcoded, no Supabase needed)
-- `src/pages/EquipmentPage.jsx` – Vehicle profile card + status toggle + timeline (Active Records + Voided Records + status group cards)
+- `src/pages/EquipmentPage.jsx` – Vehicle profile card + status toggle + timeline (Active Records + Voided Records + status group cards). Back/Home pill buttons.
 - `src/pages/ScanPage.jsx` – QR scan + manual entry (tram #, serial, or QR ID)
-- `src/pages/InspectionForm.jsx` – Inspection form (routes: `/equipment/:id/new/inspection`, `/equipment/:id/edit/:recordId/inspection`). Also exports shared components: `FormSectionHeader`, `FormField`, `FormSubmitBar`, `ADARadio`, `PhotoSection`, `compressImage`, `uploadSectionPhotos`
+- `src/pages/InspectionForm.jsx` – Inspection form (routes: `/equipment/:id/new/inspection`, `/equipment/:id/edit/:recordId/inspection`). Also exports shared components: `FormSectionHeader`, `FormField`, `FormSubmitBar`, `ADARadio`, `PhotoSection` (takes `max` prop, default 6), `compressImage`, `uploadSectionPhotos`
 - `src/pages/RepairForm.jsx` – Repair form (routes: `/equipment/:id/new/repair`, `/equipment/:id/edit/:recordId/repair`)
-- `src/pages/BatchDropOffForm.jsx` – Batch drop-off form (route: `/dropoff`). 4-step multi-step flow for event delivery logging. `record_type: 'dropoff'`
+- `src/pages/BatchDropOffForm.jsx` – Batch drop-off form (route: `/dropoff`). 4-step flow with collapsible per-tram accordion. `record_type: 'dropoff'`
+- `src/pages/DropOffEditForm.jsx` – Single-tram drop-off edit (route: `/equipment/:id/edit/:recordId/dropoff`). Shows event info read-only, edits conditions/photos.
+- `src/pages/BatchPickUpForm.jsx` – Batch pick-up form (route: `/pickup`). 4-step flow with side-by-side drop-off comparison per condition item, new-damage detection, partial pickup support, optional event-complete checkbox. `record_type: 'pickup'`. Creates records + updates deployments (`pick_up_record_id`, `status='returned'`).
 - `src/index.css` – All styles (CSS variables, utility classes). max-width: 680px
 - `vite.config.js` – Vite + PWA config
 - `supabase-schema.sql` – Full DB schema
