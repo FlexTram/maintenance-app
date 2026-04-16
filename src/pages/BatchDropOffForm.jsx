@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
-import { saveRecord } from '../lib/sync'
+import { saveRecord, sortTrams } from '../lib/sync'
 import { useAuth } from '../lib/auth'
 import { FormSectionHeader, FormField, FormSubmitBar, PhotoSection, uploadSectionPhotos } from './InspectionForm'
 
@@ -39,6 +39,16 @@ export default function BatchDropOffForm() {
   // Step 2 — Per-tram conditions & photos
   const [tramConditions, setTramConditions] = useState({}) // { equipmentId: { exterior: { status, notes }, ... } }
   const [tramPhotos, setTramPhotos]         = useState({}) // { `${equipmentId}_${conditionKey}`: [{ file, preview }] }
+  const [expandedTramIds, setExpandedTramIds] = useState(new Set())
+
+  function toggleTramExpanded(id) {
+    setExpandedTramIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   // Step 3 — Signatures
   const [techSig, setTechSig]         = useState(user?.user_metadata?.full_name || '')
@@ -48,7 +58,7 @@ export default function BatchDropOffForm() {
   // Load fleet on mount
   useEffect(() => {
     db.equipment.toArray().then(equip => {
-      const active = equip.filter(e => e.status !== 'retired').sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+      const active = sortTrams(equip.filter(e => e.status !== 'retired'))
       setFleet(active)
     })
   }, [])
@@ -342,23 +352,70 @@ export default function BatchDropOffForm() {
             Quick walk-around for each tram. Photos available on all items for before/after documentation.
           </div>
 
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <button
+              onClick={() => setExpandedTramIds(new Set(selectedTrams.map(t => t.id)))}
+              style={{ flex: 1, fontSize: 12, padding: '8px 10px', background: 'transparent', border: '0.5px solid var(--border)', borderRadius: 6, color: 'var(--text2)', cursor: 'pointer' }}
+            >Expand all</button>
+            <button
+              onClick={() => setExpandedTramIds(new Set())}
+              style={{ flex: 1, fontSize: 12, padding: '8px 10px', background: 'transparent', border: '0.5px solid var(--border)', borderRadius: 6, color: 'var(--text2)', cursor: 'pointer' }}
+            >Collapse all</button>
+          </div>
+
           {selectedTrams.map((tram, idx) => {
             const conditions = tramConditions[tram.id] || initConditions()
+            const isExpanded = expandedTramIds.has(tram.id)
+            const damageCount = Object.values(conditions).filter(c => c?.status === 'damage').length
+            const photoCount = CONDITION_ITEMS.reduce((n, { key }) => n + (tramPhotos[`${tram.id}_${key}`]?.length || 0), 0)
             return (
-              <div key={tram.id} style={{ marginBottom: '1.5rem' }}>
-                {/* Tram header */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <div>
-                    <span style={{ fontSize: 15, fontWeight: 700 }}>{tram.name}</span>
-                    <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 8 }}>{tram.serial_number || ''}</span>
+              <div key={tram.id} style={{ marginBottom: '0.75rem' }}>
+                {/* Tram header — clickable toggle */}
+                <button
+                  onClick={() => toggleTramExpanded(tram.id)}
+                  style={{
+                    width: '100%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '12px 14px',
+                    background: isExpanded ? 'var(--bg2)' : 'var(--bg1)',
+                    border: '0.5px solid var(--border)',
+                    borderRadius: isExpanded ? '8px 8px 0 0' : 8,
+                    borderBottom: isExpanded ? 'none' : '0.5px solid var(--border)',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    color: 'var(--text1)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                    <span style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 700, width: 38, flexShrink: 0 }}>
+                      {idx + 1}/{selectedTrams.length}
+                    </span>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 700 }}>{tram.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text2)' }}>{tram.serial_number || ''}</div>
+                    </div>
                   </div>
-                  <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>
-                    {idx + 1} of {selectedTrams.length}
-                  </span>
-                </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    {damageCount > 0 && (
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#f87171', background: '#450a0a', padding: '3px 8px', borderRadius: 10 }}>
+                        {damageCount} damage
+                      </span>
+                    )}
+                    {damageCount === 0 && (
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#4ade80', background: '#052e16', padding: '3px 8px', borderRadius: 10 }}>
+                        All good
+                      </span>
+                    )}
+                    {photoCount > 0 && (
+                      <span style={{ fontSize: 11, color: 'var(--text2)' }}>{photoCount} 📷</span>
+                    )}
+                    <span style={{ fontSize: 14, color: 'var(--text2)', transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 150ms' }}>›</span>
+                  </div>
+                </button>
 
-                {/* Condition card */}
-                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+                {/* Condition card (collapsible) */}
+                {isExpanded && (
+                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderTop: 'none', borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
                   {CONDITION_ITEMS.map(({ key, label, desc }) => {
                     const cond = conditions[key]
                     const isDamage = cond?.status === 'damage'
@@ -414,6 +471,7 @@ export default function BatchDropOffForm() {
                     )
                   })}
                 </div>
+                )}
               </div>
             )
           })}

@@ -409,9 +409,9 @@ export function FormSectionHeader({ title }) {
   )
 }
 
-export function PhotoSection({ sectionKey, photos, existingUrls = [], onChange, inline = false }) {
+export function PhotoSection({ sectionKey, photos, existingUrls = [], onChange, inline = false, max = 6 }) {
   const inputRef = useRef(null)
-  const MAX = 3
+  const MAX = max
   const totalCount = (existingUrls?.length || 0) + photos.length
 
   function handleAdd(file) {
@@ -432,7 +432,9 @@ export function PhotoSection({ sectionKey, photos, existingUrls = [], onChange, 
   return (
     <div style={outerStyle}>
       {(totalCount > 0 || !inline) && (
-        <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text2)', marginBottom: totalCount > 0 ? 8 : 6 }}>Photos</div>
+        <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text2)', marginBottom: totalCount > 0 ? 8 : 6 }}>
+          Photos <span style={{ color: 'var(--text3)', fontWeight: 400, textTransform: 'none' }}>({totalCount}/{MAX})</span>
+        </div>
       )}
       {totalCount > 0 && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: totalCount < MAX ? 8 : 0 }}>
@@ -453,14 +455,17 @@ export function PhotoSection({ sectionKey, photos, existingUrls = [], onChange, 
         </div>
       )}
       {totalCount < MAX && (
-        <>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <input ref={inputRef} type="file" accept="image/*" capture="environment"
             style={{ display: 'none' }} onChange={e => { if (e.target.files[0]) handleAdd(e.target.files[0]); e.target.value = '' }} />
           <button type="button" onClick={() => inputRef.current?.click()}
             style={{ width: 'auto', fontSize: 12, padding: '5px 12px', borderRadius: 6, color: 'var(--text2)', border: '1px dashed var(--border2)', background: 'transparent', cursor: 'pointer' }}>
             📷 Add Photo
           </button>
-        </>
+          <span style={{ fontSize: 11, color: 'var(--text3)' }}>
+            {totalCount}/{MAX}{totalCount === 0 ? ` · up to ${MAX} photos` : ''}
+          </span>
+        </div>
       )}
     </div>
   )

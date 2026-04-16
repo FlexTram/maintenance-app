@@ -13,6 +13,26 @@ import { supabase } from './supabase'
 // ── Equipment ─────────────────────────────────────────────────
 
 /**
+ * Sort a list of equipment naturally: TRAM-01..TRAM-32 first (numeric),
+ * then ADA-01, ADA-02. Retired trams fall to the end.
+ */
+export function sortTrams(list) {
+  return [...list].sort((a, b) => {
+    const aRetired = a.status === 'retired' ? 1 : 0
+    const bRetired = b.status === 'retired' ? 1 : 0
+    if (aRetired !== bRetired) return aRetired - bRetired
+
+    const aIsAda = a.tram_number?.startsWith('ADA') ? 1 : 0
+    const bIsAda = b.tram_number?.startsWith('ADA') ? 1 : 0
+    if (aIsAda !== bIsAda) return aIsAda - bIsAda
+
+    const aNum = parseInt(a.tram_number?.replace(/\D/g, '') || '999', 10)
+    const bNum = parseInt(b.tram_number?.replace(/\D/g, '') || '999', 10)
+    return aNum - bNum
+  })
+}
+
+/**
  * Look up equipment by QR code value.
  * Tries local cache first, falls back to Supabase if online.
  */

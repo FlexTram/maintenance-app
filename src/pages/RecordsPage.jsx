@@ -1,7 +1,79 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { getAllRecords, getAllEquipment, getAllStatusChanges } from '../lib/sync'
+import { getAllRecords, getAllEquipment, getAllStatusChanges, sortTrams } from '../lib/sync'
 import { StatusBadge } from './HomePage'
+
+function DropOffGroupCard({ group, equipment, navigate }) {
+  const [expanded, setExpanded] = useState(false)
+  const color = '#4ade80'
+  const bg = '#1a2e1a'
+  const date = group.event_date
+    ? new Date(group.event_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : ''
+  const tramCount = group.records.length
+  const damageCount = group.records.reduce((n, r) => {
+    const conds = r.form_data?.conditions || {}
+    return n + Object.values(conds).filter(c => c?.status === 'damage').length
+  }, 0)
+  const photoCount = group.records.reduce((n, r) => {
+    const photos = r.form_data?.photos || {}
+    return n + Object.values(photos).reduce((m, arr) => m + (arr?.length || 0), 0)
+  }, 0)
+
+  return (
+    <div
+      role="button" tabIndex="0" aria-expanded={expanded} aria-label={`Drop-Off event ${group.event_name}`}
+      onClick={() => setExpanded(!expanded)}
+      onKeyDown={(e) => { if (e.key === 'Enter') setExpanded(!expanded) }}
+      style={{
+        border: `1px solid ${color}40`, borderRadius: 8, padding: '10px 12px',
+        marginBottom: 8, background: bg, cursor: 'pointer',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 4, background: `${color}20`, color }}>
+            Drop-Off
+          </span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {group.event_name || 'Untitled event'}
+          </span>
+        </div>
+        <span aria-hidden="true" style={{ fontSize: 12, color: '#94a3b8', flexShrink: 0 }}>
+          {expanded ? '▾' : '▸'} {tramCount}
+        </span>
+      </div>
+      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+        {group.event_location && <span>{group.event_location} · </span>}
+        {date} · {tramCount} tram{tramCount !== 1 ? 's' : ''}
+        {damageCount > 0 && <span style={{ color: '#f87171' }}> · {damageCount} damage</span>}
+        {photoCount > 0 && <span> · {photoCount} photo{photoCount !== 1 ? 's' : ''}</span>}
+      </div>
+
+      {expanded && (
+        <div style={{ marginTop: 10, borderTop: `1px solid ${color}20`, paddingTop: 8 }}>
+          {group.records.map(r => {
+            const eq = equipment[r.equipment_id]
+            const conds = r.form_data?.conditions || {}
+            const tramDamage = Object.values(conds).filter(c => c?.status === 'damage').length
+            return (
+              <div
+                key={r.id || r.localId}
+                onClick={(e) => { e.stopPropagation(); eq && navigate(`/equipment/${eq.id}`) }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', fontSize: 13, borderBottom: '0.5px solid rgba(74,222,128,0.1)' }}
+              >
+                <span style={{ color: '#f1f5f9', fontWeight: 500 }}>{eq?.name || 'Unknown'}</span>
+                <span style={{ fontSize: 11, color: tramDamage > 0 ? '#f87171' : '#4ade80' }}>
+                  {tramDamage > 0 ? `${tramDamage} damage` : 'All good'}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function StatusGroupCardFleet({ eq, changes, navigate, color, bg, latestDate, statusLabel, statusColor }) {
   const [expanded, setExpanded] = useState(false)
@@ -96,8 +168,35 @@ export default function RecordsPage() {
         _sortDate: changes[0]?.changed_at?.split('T')[0] || changes[0]?.changed_at,
         changes,
       }))
+
+      // Group drop-off records by event_name + event_date
+      const dropoffGroups = {}
+      const otherRecords = []
+      for (const r of recs) {
+        if (r.voided) continue
+        if (r.record_type === 'dropoff') {
+          const evName = r.form_data?.event_name || 'Untitled'
+          const evDate = r.form_data?.event_date || r.service_date
+          const key = `${evName}__${evDate}`
+          if (!dropoffGroups[key]) {
+            dropoffGroups[key] = {
+              _type: 'dropoff_group',
+              _sortDate: evDate,
+              event_name: evName,
+              event_location: r.form_data?.event_location || '',
+              event_date: evDate,
+              records: [],
+            }
+          }
+          dropoffGroups[key].records.push(r)
+        } else {
+          otherRecords.push({ ...r, _type: 'record', _sortDate: r.service_date })
+        }
+      }
+
       const merged = [
-        ...recs.filter(r => !r.voided).map(r => ({ ...r, _type: 'record', _sortDate: r.service_date })),
+        ...otherRecords,
+        ...Object.values(dropoffGroups),
         ...scGroups,
       ].sort((a, b) => (b._sortDate || '').localeCompare(a._sortDate || ''))
       setTimeline(merged)
@@ -107,20 +206,8 @@ export default function RecordsPage() {
     load()
   }, [])
 
-  // Sort: ADA trams first, then numerically by tram number
-  function sortEquipment(list) {
-    return [...list].sort((a, b) => {
-      const aIsAda = a.tram_number?.startsWith('ADA') ? 0 : 1
-      const bIsAda = b.tram_number?.startsWith('ADA') ? 0 : 1
-      if (aIsAda !== bIsAda) return aIsAda - bIsAda
-      const aNum = parseInt(a.tram_number?.replace(/\D/g, '') || '999')
-      const bNum = parseInt(b.tram_number?.replace(/\D/g, '') || '999')
-      return aNum - bNum
-    })
-  }
-
   const activeEquip = equipList.filter(e => e.status !== 'retired')
-  const filteredEquip = sortEquipment(filter === 'all'
+  const filteredEquip = sortTrams(filter === 'all'
     ? activeEquip
     : activeEquip.filter(e => {
         if (filter === 'in_service') return !e.status || e.status === 'in_service'
@@ -128,14 +215,20 @@ export default function RecordsPage() {
       }))
 
   // Filter timeline by equipment's CURRENT status, not the record's status at time of submission
+  const matchesFilter = (eqId) => {
+    const eq = equipment[eqId]
+    if (!eq) return false
+    const eqStatus = eq.status || 'in_service'
+    if (filter === 'in_service') return eqStatus === 'in_service'
+    return eqStatus === filter
+  }
   const filteredTimeline = filter === 'all'
     ? timeline
     : timeline.filter(entry => {
-        const eq = equipment[entry.equipment_id]
-        if (!eq) return false
-        const eqStatus = eq.status || 'in_service'
-        if (filter === 'in_service') return eqStatus === 'in_service'
-        return eqStatus === filter
+        if (entry._type === 'dropoff_group') {
+          return entry.records.some(r => matchesFilter(r.equipment_id))
+        }
+        return matchesFilter(entry.equipment_id)
       })
 
   const statusLabel = f =>
@@ -223,6 +316,16 @@ export default function RecordsPage() {
             <div className="empty">No {filter !== 'all' ? statusLabel(filter).toLowerCase() : ''} records found.</div>
           )}
           {filteredTimeline.map((entry, i) => {
+            if (entry._type === 'dropoff_group') {
+              return (
+                <DropOffGroupCard
+                  key={`do-${entry.event_name}-${entry.event_date}`}
+                  group={entry}
+                  equipment={equipment}
+                  navigate={navigate}
+                />
+              )
+            }
             if (entry._type === 'status_group') {
               const eq = equipment[entry.equipment_id]
               const latest = entry.changes[0]

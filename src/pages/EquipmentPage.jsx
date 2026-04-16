@@ -66,7 +66,9 @@ export default function EquipmentPage() {
   }
 
   function handleEdit(record) {
-    const formType = record.record_type === 'inspection' ? 'inspection' : 'repair'
+    const formType =
+      record.record_type === 'inspection' ? 'inspection' :
+      record.record_type === 'dropoff'    ? 'dropoff'    : 'repair'
     navigate(`/equipment/${id}/edit/${record.localId}/${formType}`)
   }
 
@@ -117,7 +119,28 @@ export default function EquipmentPage() {
 
   return (
     <div className="page">
-      <button className="back" onClick={() => navigate('/')}>← Home</button>
+      <div style={{ display: 'flex', gap: 8, marginBottom: '1.25rem' }}>
+        <button
+          onClick={() => navigate(-1)}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            width: 'auto', padding: '8px 14px', minHeight: 38,
+            fontSize: 13, fontWeight: 600, color: 'var(--text1)',
+            background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 999,
+            cursor: 'pointer',
+          }}
+        >← Back</button>
+        <button
+          onClick={() => navigate('/')}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            width: 'auto', padding: '8px 14px', minHeight: 38,
+            fontSize: 13, fontWeight: 600, color: 'var(--text2)',
+            background: 'transparent', border: '0.5px solid var(--border)', borderRadius: 999,
+            cursor: 'pointer',
+          }}
+        >🏠 Home</button>
+      </div>
 
       {/* Vehicle profile card */}
       <div className="card" style={{ marginBottom: '1rem' }}>
