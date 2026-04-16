@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { getAllRecords, getAllEquipment, voidRecord, getPendingCount, flushPendingRecords } from '../lib/sync'
+import { getAllRecords, getAllEquipment, voidRecord, getPendingCount, flushPendingRecords, getLastSyncResult, getLocalRecordCount } from '../lib/sync'
 
 export default function HomePage() {
   const { user, signOut } = useAuth()
@@ -11,6 +11,8 @@ export default function HomePage() {
   const [pendingSync, setPendingSync] = useState(0)
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState(null)
+  const [lastSync, setLastSync] = useState(getLastSyncResult())
+  const [localCount, setLocalCount] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -43,6 +45,7 @@ export default function HomePage() {
       // Check for unsynced records
       const unsyncedCount = await getPendingCount()
       setPendingSync(unsyncedCount)
+      setLocalCount(await getLocalRecordCount())
     }
     load()
     return () => { cancelled = true }
@@ -55,6 +58,8 @@ export default function HomePage() {
     const remaining = await getPendingCount()
     setPendingSync(remaining)
     setSyncResult(result)
+    setLastSync(getLastSyncResult())
+    setLocalCount(await getLocalRecordCount())
     setSyncing(false)
   }
 
@@ -113,6 +118,31 @@ export default function HomePage() {
             <a href="/recover.html" style={{ display: 'block', textAlign: 'center', fontSize: 12, color: '#64748b', marginTop: 8 }}>
               Advanced recovery
             </a>
+          </div>
+        )}
+
+        {/* Sync status strip — visible whenever there are local records */}
+        {localCount > 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '8px 12px', marginBottom: 14,
+            background: '#0f172a', border: '0.5px solid #1e293b', borderRadius: 8,
+            fontSize: 11, color: '#64748b',
+          }}>
+            <span>
+              {localCount} record{localCount !== 1 ? 's' : ''} on this device
+              {pendingSync > 0 && <span style={{ color: '#fb923c', fontWeight: 600 }}> · {pendingSync} pending</span>}
+            </span>
+            <span>
+              {lastSync ? (
+                <>
+                  Last push: {lastSync.synced}
+                  {lastSync.failed > 0 && <span style={{ color: '#f87171' }}> ({lastSync.failed} failed)</span>}
+                  {' · '}
+                  {new Date(lastSync.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                </>
+              ) : 'No sync yet'}
+            </span>
           </div>
         )}
 
@@ -175,6 +205,18 @@ export default function HomePage() {
             <circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
           </svg>
           Log Drop-Off
+        </button>
+
+        <button
+          onClick={() => navigate('/pickup')}
+          style={{ width: '100%', background: 'transparent', color: '#94a3b8', border: '0.5px solid #1e293b', borderRadius: 10, padding: 11, fontSize: 14, marginBottom: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+        >
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 16V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10" />
+            <polygon points="3 16 8 16 11 19 13 19 16 16 21 16 21 21 3 21 3 16" />
+            <path d="M12 11l-3-3 3-3" /><path d="M9 8h8" />
+          </svg>
+          Log Pick-Up
         </button>
 
         <button

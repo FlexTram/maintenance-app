@@ -140,7 +140,8 @@ export async function saveRecord(record) {
   const updated = await db.records.get(localId)
   const didSync = updated?.synced === 1
 
-  return { ...localRecord, localId, didSync, syncResult: result }
+  // Return the updated record so callers see the Supabase-assigned id after sync
+  return { ...(updated || localRecord), localId, didSync, syncResult: result }
 }
 
 /**
@@ -206,6 +207,147 @@ export async function getAllRecords() {
   return all.sort((a, b) => new Date(b.service_date) - new Date(a.service_date))
 }
 
+// ── Events & Deployments ──────────────────────────────────────
+
+/**
+ * Get all events. Syncs from Supabase if online, falls back to local cache.
+ */
+export async function getAllEvents() {
+  if (navigator.onLine) {
+    try {
+      const { data } = await supabase
+        .from('events')
+        .select('*')
+        .order('start_date', { ascending: false })
+      if (data) {
+        await db.events.clear()
+        await db.events.bulkPut(data)
+      }
+    } catch (e) {
+      console.error('[sync] Failed to refresh events:', e.message)
+    }
+  }
+  return db.events.orderBy('start_date').reverse().toArray()
+}
+
+/**
+ * Get all deployments (active + returned). Syncs from Supabase if online.
+ */
+export async function getAllDeployments() {
+  if (navigator.onLine) {
+    try {
+      const { data } = await supabase
+        .from('deployments')
+        .select('*')
+      if (data) {
+        await db.deployments.clear()
+        await db.deployments.bulkPut(data)
+      }
+    } catch (e) {
+      console.error('[sync] Failed to refresh deployments:', e.message)
+    }
+  }
+  return db.deployments.toArray()
+}
+
+/**
+ * Mark a deployment as returned once a pick-up record has been created.
+ * Writes to Supabase and refreshes the local cache.
+ */
+export async function markDeploymentReturned(deploymentId, pickUpRecordId, pickedUpAt) {
+  const { error } = await supabase
+    .from('deployments')
+    .update({
+      pick_up_record_id: pickUpRecordId,
+      picked_up_at: pickedUpAt,
+      status: 'returned',
+    })
+    .eq('id', deploymentId)
+  if (error) {
+    console.error('[sync] Failed to mark deployment returned:', error.message)
+    return false
+  }
+  // Refresh local cache so master list updates immediately
+  await getAllDeployments()
+  return true
+}
+
+/**
+ * Close an event: set status='completed' and closed_at=now.
+ * Used when all trams in an event have been picked up OR the tech manually closes.
+ */
+export async function closeEvent(eventId) {
+  const { error } = await supabase
+    .from('events')
+    .update({ status: 'completed', closed_at: new Date().toISOString() })
+    .eq('id', eventId)
+  if (error) {
+    console.error('[sync] Failed to close event:', error.message)
+    return false
+  }
+  await getAllEvents()
+  return true
+}
+
+/**
+ * Check if an event has any still-deployed trams. Returns true if all returned.
+ */
+export async function areAllDeploymentsReturned(eventId) {
+  const { count, error } = await supabase
+    .from('deployments')
+    .select('*', { count: 'exact', head: true })
+    .eq('event_id', eventId)
+    .eq('status', 'deployed')
+  if (error) {
+    console.error('[sync] Failed to count open deployments:', error.message)
+    return false
+  }
+  return count === 0
+}
+
+/**
+ * Load the full deployments-with-events list for the pick-up form.
+ * Returns events (active only) each with their deployed trams.
+ */
+export async function getActiveEventsWithDeployments() {
+  const [events, deployments, equip] = await Promise.all([
+    getAllEvents(), getAllDeployments(), getAllEquipment()
+  ])
+  const eqMap = Object.fromEntries(equip.map(e => [e.id, e]))
+  return events
+    .filter(e => e.status === 'active')
+    .map(event => ({
+      ...event,
+      deployments: deployments
+        .filter(d => d.event_id === event.id && d.status === 'deployed')
+        .map(d => ({ ...d, equipment: eqMap[d.equipment_id] })),
+    }))
+    .filter(e => e.deployments.length > 0)
+}
+
+/**
+ * Get a map of equipmentId -> active deployment (joined with event details).
+ * Used by the master list to show "where is this tram right now".
+ */
+export async function getActiveDeploymentMap() {
+  const [deployments, events] = await Promise.all([getAllDeployments(), getAllEvents()])
+  const eventMap = Object.fromEntries(events.map(e => [e.id, e]))
+  const map = {}
+  for (const d of deployments) {
+    if (d.status !== 'deployed') continue
+    const event = eventMap[d.event_id]
+    if (!event) continue
+    map[d.equipment_id] = {
+      ...d,
+      event_name:       event.name,
+      event_location:   event.location,
+      event_client:     event.client,
+      event_start_date: event.start_date,
+    }
+  }
+  return map
+}
+
 // ── Sync Engine ───────────────────────────────────────────────
 
 /**
@@ -262,7 +404,34 @@ export async function flushPendingRecords() {
     }
   }))
   console.log(`[sync] Done: ${synced} synced, ${failed} failed`)
+
+  // Stash last sync result for homepage status display
+  try {
+    localStorage.setItem('last_sync_result', JSON.stringify({
+      synced, failed, attempted: pending.length, at: new Date().toISOString(),
+    }))
+  } catch {}
+
   return { synced, failed, pending: pending.length }
+}
+
+/**
+ * Get the last sync result recorded on this device, or null if none.
+ */
+export function getLastSyncResult() {
+  try {
+    const raw = localStorage.getItem('last_sync_result')
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Total record count in the local IndexedDB (all states combined).
+ */
+export async function getLocalRecordCount() {
+  return db.records.count()
 }
 
 /**

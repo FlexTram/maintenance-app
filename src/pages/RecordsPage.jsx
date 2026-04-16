@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { getAllRecords, getAllEquipment, getAllStatusChanges, sortTrams } from '../lib/sync'
+import { getAllRecords, getAllEquipment, getAllStatusChanges, getActiveDeploymentMap, sortTrams } from '../lib/sync'
 import { StatusBadge } from './HomePage'
 
 function DropOffGroupCard({ group, equipment, navigate }) {
@@ -141,15 +141,17 @@ export default function RecordsPage() {
   const [timeline,  setTimeline]  = useState([])
   const [equipList, setEquipList] = useState([])
   const [equipment, setEquipment] = useState({})
+  const [deployMap, setDeployMap] = useState({})
   const [filter,    setFilter]    = useState(searchParams.get('filter') || 'all')
   const [view]                    = useState(searchParams.get('view') || 'equipment')
   const [loading,   setLoading]   = useState(true)
 
   useEffect(() => {
     async function load() {
-      const [recs, equip, statusChanges] = await Promise.all([
-        getAllRecords(), getAllEquipment(), getAllStatusChanges()
+      const [recs, equip, statusChanges, deployments] = await Promise.all([
+        getAllRecords(), getAllEquipment(), getAllStatusChanges(), getActiveDeploymentMap()
       ])
+      setDeployMap(deployments)
       const eqMap = Object.fromEntries(equip.map(e => [e.id, e]))
       setEquipment(eqMap)
       setEquipList(equip)
@@ -210,6 +212,7 @@ export default function RecordsPage() {
   const filteredEquip = sortTrams(filter === 'all'
     ? activeEquip
     : activeEquip.filter(e => {
+        if (filter === 'deployed')   return !!deployMap[e.id]
         if (filter === 'in_service') return !e.status || e.status === 'in_service'
         return e.status === filter
       }))
@@ -232,14 +235,21 @@ export default function RecordsPage() {
       })
 
   const statusLabel = f =>
-    f === 'all' ? 'All' : f === 'in_service' ? 'In service' : f === 'out_of_service' ? 'Out of service' : 'Pending'
+    f === 'all' ? 'All'
+    : f === 'in_service' ? 'In service'
+    : f === 'out_of_service' ? 'Out of service'
+    : f === 'deployed' ? 'Deployed'
+    : 'Pending'
 
   const filterColors = {
     all:            { bg: '#1e293b', color: '#f1f5f9', border: '#f1f5f9' },
     in_service:     { bg: '#052e16', color: '#4ade80', border: '#4ade80' },
     out_of_service: { bg: '#450a0a', color: '#f87171', border: '#f87171' },
     pending:        { bg: '#431407', color: '#fb923c', border: '#fb923c' },
+    deployed:       { bg: '#1a2e1a', color: '#4ade80', border: '#4ade80' },
   }
+
+  const deployedCount = Object.keys(deployMap).length
 
   return (
     <div className="page">
@@ -250,7 +260,7 @@ export default function RecordsPage() {
 
       {/* Filter tabs */}
       <div role="tablist" aria-label="Filter by status" style={{ display: 'flex', gap: 6, marginBottom: '1rem', flexWrap: 'wrap' }}>
-        {['all', 'in_service', 'out_of_service', 'pending'].map(f => {
+        {['all', 'deployed', 'in_service', 'out_of_service', 'pending'].map(f => {
           const active = filter === f
           const c = filterColors[f]
           return (
@@ -282,30 +292,44 @@ export default function RecordsPage() {
           {filteredEquip.length === 0 && (
             <div className="empty">No {filter !== 'all' ? statusLabel(filter).toLowerCase() : ''} equipment found.</div>
           )}
-          {filteredEquip.map(eq => (
-            <div
-              key={eq.id}
-              className="record"
-              role="button" tabIndex="0" aria-label={`View ${eq.name}`}
-              style={{ cursor: 'pointer' }}
-              onClick={() => navigate(`/equipment/${eq.id}`)}
-              onKeyDown={e => e.key === 'Enter' && navigate(`/equipment/${eq.id}`)}
-            >
-              <div className="record-header">
-                <span style={{ fontWeight: 500, fontSize: 14 }}>
-                  {eq.name}{eq.model ? ` — ${eq.model}` : ''}
-                </span>
-                <StatusBadge status={eq.status || 'in_service'} />
+          {filteredEquip.map(eq => {
+            const deployment = deployMap[eq.id]
+            return (
+              <div
+                key={eq.id}
+                className="record"
+                role="button" tabIndex="0" aria-label={`View ${eq.name}`}
+                style={{ cursor: 'pointer' }}
+                onClick={() => navigate(`/equipment/${eq.id}`)}
+                onKeyDown={e => e.key === 'Enter' && navigate(`/equipment/${eq.id}`)}
+              >
+                <div className="record-header">
+                  <span style={{ fontWeight: 500, fontSize: 14 }}>
+                    {eq.name}{eq.model ? ` — ${eq.model}` : ''}
+                  </span>
+                  <StatusBadge status={eq.status || 'in_service'} />
+                </div>
+                <div className="record-meta">
+                  {eq.serial_number || eq.qr_id}
+                  {eq.model_year && <span> · {eq.model_year}</span>}
+                </div>
+                {deployment && (
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    marginTop: 6, padding: '4px 10px',
+                    background: '#1a2e1a', border: '0.5px solid #4ade8040',
+                    borderRadius: 999, fontSize: 12, color: '#4ade80', fontWeight: 600,
+                  }}>
+                    📍 {deployment.event_name}
+                    {deployment.event_location && <span style={{ color: '#94a3b8', fontWeight: 400 }}> · {deployment.event_location}</span>}
+                  </div>
+                )}
+                {eq.status_note && (
+                  <div className="record-notes">{eq.status_note}</div>
+                )}
               </div>
-              <div className="record-meta">
-                {eq.serial_number || eq.qr_id}
-                {eq.model_year && <span> · {eq.model_year}</span>}
-              </div>
-              {eq.status_note && (
-                <div className="record-notes">{eq.status_note}</div>
-              )}
-            </div>
-          ))}
+            )
+          })}
         </>
       )}
 

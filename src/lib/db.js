@@ -18,3 +18,12 @@ db.version(2).stores({
   // Sync error log — records failed Supabase upload attempts
   syncErrors: '++id, record_id, failed_at',
 })
+
+db.version(3).stores({
+  equipment: 'id, qr_id',
+  records: '++localId, id, equipment_id, synced, service_date',
+  syncErrors: '++id, record_id, failed_at',
+  // Event + deployment caches — synced from Supabase, used offline for master list
+  events: 'id, start_date, status',
+  deployments: 'id, equipment_id, event_id, status',
+})
