@@ -219,6 +219,8 @@ export default function RecordsPage() {
 
   // Filter timeline by equipment's CURRENT status, not the record's status at time of submission
   const matchesFilter = (eqId) => {
+    if (!eqId) return false
+    if (filter === 'deployed') return !!deployMap[eqId]
     const eq = equipment[eqId]
     if (!eq) return false
     const eqStatus = eq.status || 'in_service'
