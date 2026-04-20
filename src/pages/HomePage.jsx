@@ -231,6 +231,21 @@ export default function HomePage() {
         </button>
 
         <button
+          onClick={() => navigate('/records?view=equipment')}
+          style={{ width: '100%', background: 'transparent', color: '#94a3b8', border: '0.5px solid #1e293b', borderRadius: 10, padding: 11, fontSize: 14, marginBottom: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+        >
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="4" height="4" rx="1" />
+            <line x1="10" y1="6" x2="21" y2="6" />
+            <rect x="3" y="11" width="4" height="4" rx="1" />
+            <line x1="10" y1="13" x2="21" y2="13" />
+            <rect x="3" y="18" width="4" height="4" rx="1" />
+            <line x1="10" y1="20" x2="21" y2="20" />
+          </svg>
+          View Fleet Equipment
+        </button>
+
+        <button
           onClick={() => navigate('/records?view=records')}
           style={{ width: '100%', background: 'transparent', color: '#94a3b8', border: '0.5px solid #1e293b', borderRadius: 10, padding: 11, fontSize: 14, marginBottom: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
         >
