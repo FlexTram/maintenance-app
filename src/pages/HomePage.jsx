@@ -29,17 +29,28 @@ export default function HomePage() {
       })
       setStats({ inService, outOfService, pending })
 
-      const seen = new Set()
-      const recentEquip = []
+      // Collect most recent non-voided record per tram, then pick the 4 most recent.
+      // Tiebreaker within the same service_date: tram number ascending (TRAM-1..32, then ADA).
+      const latestByTram = new Map()
       for (const r of recs) {
         if (r.voided) continue
-        if (!seen.has(r.equipment_id)) {
-          seen.add(r.equipment_id)
-          const eq = equip.find(e => e.id === r.equipment_id)
-          if (eq) recentEquip.push({ eq, lastRecord: r })
-        }
-        if (recentEquip.length >= 4) break
+        if (!latestByTram.has(r.equipment_id)) latestByTram.set(r.equipment_id, r)
       }
+      const tramSortKey = (eq) => {
+        if (!eq?.tram_number) return 9999
+        const isAda = eq.tram_number.startsWith('ADA') ? 1000 : 0
+        const num = parseInt(eq.tram_number.replace(/\D/g, '') || '999', 10)
+        return isAda + num
+      }
+      const recentEquip = Array.from(latestByTram.entries())
+        .map(([eqId, r]) => ({ eq: equip.find(e => e.id === eqId), lastRecord: r }))
+        .filter(x => x.eq)
+        .sort((a, b) => {
+          const dateCompare = (b.lastRecord.service_date || '').localeCompare(a.lastRecord.service_date || '')
+          if (dateCompare !== 0) return dateCompare
+          return tramSortKey(a.eq) - tramSortKey(b.eq)
+        })
+        .slice(0, 4)
       setRecent(recentEquip)
 
       // Check for unsynced records
