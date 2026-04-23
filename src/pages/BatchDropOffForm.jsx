@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
-import { saveRecord, sortTrams } from '../lib/sync'
+import { saveRecord, sortTrams, findOrCreateEvent, createDeployment } from '../lib/sync'
 import { useAuth } from '../lib/auth'
 import { FormSectionHeader, FormField, FormSubmitBar, PhotoSection, uploadSectionPhotos } from './InspectionForm'
 
@@ -35,6 +35,8 @@ export default function BatchDropOffForm() {
   // Step 1 — Select trams
   const [fleet, setFleet]               = useState([])
   const [selectedIds, setSelectedIds]   = useState(new Set())
+  const [tramDepartments, setTramDepartments] = useState({}) // { equipmentId: 'Staff' }
+  const [bulkDepartment, setBulkDepartment]   = useState('')
 
   // Step 2 — Per-tram conditions & photos
   const [tramConditions, setTramConditions] = useState({}) // { equipmentId: { exterior: { status, notes }, ... } }
@@ -159,8 +161,18 @@ export default function BatchDropOffForm() {
         }
       }
 
-      // Save one record per tram
+      // Find or create the event (online only — deployments need Supabase IDs)
+      const event = await findOrCreateEvent({
+        name: eventName,
+        location: eventLocation,
+        startDate: eventDate,
+        createdBy: user?.id,
+      })
+
+      // Save one record per tram + link a deployment for each
       const batchSize = selectedTrams.length
+      let deploymentsCreated = 0
+      let deploymentsSkipped = 0
       for (const tram of selectedTrams) {
         const conditions = tramConditions[tram.id] || initConditions()
         const flaggedCount = Object.values(conditions).filter(c => c.status === 'damage').length
@@ -174,6 +186,7 @@ export default function BatchDropOffForm() {
           }
         }
 
+        const department = (tramDepartments[tram.id] || '').trim() || null
         const result = await saveRecord({
           equipment_id: tram.id,
           technician_name: tech,
@@ -188,6 +201,7 @@ export default function BatchDropOffForm() {
             event_location: eventLocation,
             event_date: eventDate,
             batch_size: batchSize,
+            department,
             conditions,
             photos,
             tech_signature: techSig,
@@ -195,10 +209,28 @@ export default function BatchDropOffForm() {
           },
         })
         if (!result.didSync) syncFailed = true
+
+        // Create deployment row linking tram ↔ event ↔ drop-off record.
+        // Requires online (needs the Supabase-assigned record id).
+        if (result.didSync && result.id && event?.id) {
+          const created = await createDeployment({
+            eventId: event.id,
+            equipmentId: tram.id,
+            dropOffRecordId: result.id,
+            droppedOffAt: eventDate,
+            department,
+          })
+          if (created) deploymentsCreated++
+          else deploymentsSkipped++
+        } else {
+          deploymentsSkipped++
+        }
       }
 
       if (syncFailed) {
         alert('Records saved to your device but failed to sync to the cloud. They will appear on the home screen for manual sync.')
+      } else if (deploymentsSkipped > 0 && deploymentsCreated === 0) {
+        alert('Records saved, but deployments could not be created (offline or event creation failed). Master list and Pick-Up may not reflect these until you sync online.')
       }
       navigate('/')
     } catch (err) {
@@ -276,6 +308,53 @@ export default function BatchDropOffForm() {
         <>
           <FormSectionHeader title="Select Trams for Drop-Off" />
 
+          {/* Explainer — tells techs why the amber field matters */}
+          <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 10, lineHeight: 1.45 }}>
+            <span style={{ color: '#fbbf24' }}>🏷️</span> Tag each tram with the department using it (Staff, Roadrunner Express, ADA, Resources). Optional — leave blank if not applicable.
+          </div>
+
+          {/* Bulk department helper — shown when at least one tram selected */}
+          {selectedIds.size > 0 && (
+            <div style={{
+              marginBottom: 10, padding: 10,
+              background: 'linear-gradient(180deg, rgba(251,191,36,0.08), rgba(251,191,36,0.02))',
+              border: '1px solid rgba(251,191,36,0.35)', borderLeft: '3px solid #fbbf24',
+              borderRadius: 8,
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                🏷️ Department — quick apply
+              </div>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <input
+                  type="text"
+                  value={bulkDepartment}
+                  onChange={e => setBulkDepartment(e.target.value)}
+                  placeholder="e.g. Staff, Roadrunner, ADA"
+                  style={{
+                    flex: 1, fontSize: 13, padding: '6px 10px', minHeight: 34,
+                    background: 'var(--bg)', border: '0.5px solid rgba(251,191,36,0.4)',
+                    color: 'var(--text1)', borderRadius: 6,
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    const d = bulkDepartment.trim()
+                    if (!d) return
+                    setTramDepartments(prev => {
+                      const next = { ...prev }
+                      for (const id of selectedIds) next[id] = d
+                      return next
+                    })
+                  }}
+                  style={{ width: 'auto', fontSize: 12, fontWeight: 700, padding: '6px 14px', minHeight: 34, background: '#fbbf24', border: 'none', borderRadius: 6, color: '#0f1117', cursor: 'pointer' }}
+                >Apply to {selectedIds.size}</button>
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 6 }}>
+                Applies to all currently selected trams. You can still override per tram below.
+              </div>
+            </div>
+          )}
+
           {/* Select All toggle */}
           <div
             onClick={() => {
@@ -304,31 +383,59 @@ export default function BatchDropOffForm() {
               return (
                 <div
                   key={eq.id}
-                  onClick={() => {
-                    setSelectedIds(prev => {
-                      const next = new Set(prev)
-                      if (next.has(eq.id)) next.delete(eq.id)
-                      else next.add(eq.id)
-                      return next
-                    })
-                  }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', minHeight: 48,
-                    borderBottom: '0.5px solid var(--border)', cursor: 'pointer',
+                    borderBottom: '0.5px solid var(--border)',
                     background: selected ? '#f59e0b10' : 'transparent',
                   }}
                 >
-                  <div style={{
-                    width: 28, height: 28, borderRadius: 6, border: `2px solid ${selected ? '#f59e0b' : 'var(--border2)'}`,
-                    background: selected ? '#f59e0b' : 'transparent',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  }}>
+                  <div
+                    onClick={() => {
+                      setSelectedIds(prev => {
+                        const next = new Set(prev)
+                        if (next.has(eq.id)) next.delete(eq.id)
+                        else next.add(eq.id)
+                        return next
+                      })
+                    }}
+                    style={{
+                      width: 28, height: 28, borderRadius: 6, border: `2px solid ${selected ? '#f59e0b' : 'var(--border2)'}`,
+                      background: selected ? '#f59e0b' : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer',
+                    }}>
                     {selected && <span style={{ color: '#0f1117', fontSize: 16, fontWeight: 700 }}>✓</span>}
                   </div>
-                  <div>
+                  <div
+                    onClick={() => {
+                      setSelectedIds(prev => {
+                        const next = new Set(prev)
+                        if (next.has(eq.id)) next.delete(eq.id)
+                        else next.add(eq.id)
+                        return next
+                      })
+                    }}
+                    style={{ flex: 1, cursor: 'pointer', minWidth: 0 }}
+                  >
                     <div style={{ fontSize: 14, fontWeight: 600 }}>{eq.name}</div>
                     <div style={{ fontSize: 11, color: 'var(--text2)' }}>{eq.serial_number || eq.qr_id}</div>
                   </div>
+                  {selected && (
+                    <input
+                      type="text"
+                      value={tramDepartments[eq.id] || ''}
+                      onChange={e => setTramDepartments(prev => ({ ...prev, [eq.id]: e.target.value }))}
+                      placeholder="🏷️ Dept"
+                      onClick={e => e.stopPropagation()}
+                      style={{
+                        width: 130, fontSize: 12, padding: '5px 8px', minHeight: 32, flexShrink: 0,
+                        background: 'rgba(251,191,36,0.06)',
+                        border: '1px solid rgba(251,191,36,0.35)',
+                        borderLeft: '2px solid #fbbf24',
+                        borderRadius: 6,
+                        color: 'var(--text1)',
+                      }}
+                    />
+                  )}
                 </div>
               )
             })}

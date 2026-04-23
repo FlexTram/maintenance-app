@@ -251,6 +251,119 @@ export async function getAllDeployments() {
 }
 
 /**
+ * Find an existing event by (name, start_date) or create a new one.
+ * Returns the event row, or null if Supabase call fails.
+ */
+export async function findOrCreateEvent({ name, location, startDate, client, createdBy }) {
+  if (!navigator.onLine) return null
+  if (!name || !startDate) return null
+
+  // Look up first
+  const { data: existing } = await supabase
+    .from('events')
+    .select('*')
+    .eq('name', name)
+    .eq('start_date', startDate)
+    .maybeSingle()
+
+  if (existing) return existing
+
+  // Create if missing
+  const { data: created, error } = await supabase
+    .from('events')
+    .insert({
+      name,
+      location: location || null,
+      start_date: startDate,
+      client: client || null,
+      status: 'active',
+      created_by: createdBy || null,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    // Handle race: another device inserted between our SELECT and INSERT
+    if (error.code === '23505') {
+      const { data: raced } = await supabase
+        .from('events').select('*')
+        .eq('name', name).eq('start_date', startDate).maybeSingle()
+      return raced || null
+    }
+    console.error('[sync] Failed to create event:', error.message)
+    return null
+  }
+  return created
+}
+
+/**
+ * Create a deployment linking a tram to an event for a specific drop-off.
+ * Uses upsert to be idempotent against (event_id, equipment_id) UNIQUE.
+ */
+export async function createDeployment({ eventId, equipmentId, dropOffRecordId, droppedOffAt, department }) {
+  if (!navigator.onLine) return null
+
+  const { data, error } = await supabase
+    .from('deployments')
+    .insert({
+      event_id: eventId,
+      equipment_id: equipmentId,
+      drop_off_record_id: dropOffRecordId,
+      dropped_off_at: droppedOffAt,
+      department: department?.trim() || null,
+      status: 'deployed',
+    })
+    .select()
+    .single()
+
+  if (error) {
+    if (error.code === '23505') {
+      console.warn('[sync] Deployment already exists for this (event, tram) — leaving as-is')
+      return null
+    }
+    console.error('[sync] Failed to create deployment:', error.message)
+    return null
+  }
+  return data
+}
+
+/**
+ * Update the department on an existing deployment (for edit flows).
+ */
+export async function updateDeploymentDepartment(deploymentId, department) {
+  if (!navigator.onLine) return false
+  const { error } = await supabase
+    .from('deployments')
+    .update({ department: department?.trim() || null })
+    .eq('id', deploymentId)
+  if (error) {
+    console.error('[sync] Failed to update department:', error.message)
+    return false
+  }
+  await getAllDeployments()
+  return true
+}
+
+/**
+ * Find the deployment row for a specific drop-off record.
+ * Used by DropOffEditForm to load the existing department value.
+ */
+export async function getDeploymentByDropOffRecord(dropOffRecordId) {
+  if (!dropOffRecordId) return null
+  // Try local cache first
+  const cached = await db.deployments.toArray()
+  const local = cached.find(d => d.drop_off_record_id === dropOffRecordId)
+  if (local) return local
+  if (!navigator.onLine) return null
+  const { data } = await supabase
+    .from('deployments')
+    .select('*')
+    .eq('drop_off_record_id', dropOffRecordId)
+    .maybeSingle()
+  return data || null
+}
+
+/**
  * Mark a deployment as returned once a pick-up record has been created.
  * Writes to Supabase and refreshes the local cache.
  */
@@ -339,6 +452,7 @@ export async function getActiveDeploymentMap() {
     if (!event) continue
     map[d.equipment_id] = {
       ...d,
+      department:       d.department || null,
       event_name:       event.name,
       event_location:   event.location,
       event_client:     event.client,

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
-import { editRecord } from '../lib/sync'
+import { editRecord, getDeploymentByDropOffRecord, updateDeploymentDepartment } from '../lib/sync'
 import { useAuth } from '../lib/auth'
 import { FormSectionHeader, FormSubmitBar, PhotoSection, uploadSectionPhotos } from './InspectionForm'
 
@@ -28,10 +28,12 @@ export default function DropOffEditForm() {
   const [existingPhotos, setExistingPhotos] = useState({}) // { condKey: ['url1', ...] }
   const [newPhotos, setNewPhotos]     = useState({})       // { condKey: [{ file, preview }] }
   const [removedUrls, setRemovedUrls] = useState(new Set())
+  const [deployment, setDeployment]   = useState(null)
+  const [department, setDepartment]   = useState('')
   const [saving, setSaving]           = useState(false)
   const [errors, setErrors]           = useState([])
 
-  // Load record + equipment
+  // Load record + equipment + deployment (for editable department)
   useEffect(() => {
     async function load() {
       const r = await db.records.where('localId').equals(Number(recordId)).first()
@@ -42,6 +44,15 @@ export default function DropOffEditForm() {
       setExistingPhotos(fd.photos || {})
       const equipment = await db.equipment.get(id)
       setEq(equipment)
+
+      // Fetch the deployment linked to this drop-off (if any) to load its department
+      if (r.id) {
+        const dep = await getDeploymentByDropOffRecord(r.id)
+        if (dep) {
+          setDeployment(dep)
+          setDepartment(dep.department || '')
+        }
+      }
     }
     load()
   }, [id, recordId])
@@ -102,12 +113,19 @@ export default function DropOffEditForm() {
           inspection_notes: `Drop-off at ${evName}${flaggedCount > 0 ? ` — ${flaggedCount} item${flaggedCount > 1 ? 's' : ''} flagged` : ''}`,
           form_data: {
             ...record.form_data,
+            department: department.trim() || null,
             conditions,
             photos: mergedPhotos,
           },
         },
         user?.id, user?.user_metadata?.full_name
       )
+
+      // If we have a deployment and the department changed, update it on the deployment row
+      if (deployment && (deployment.department || '') !== department.trim()) {
+        await updateDeploymentDepartment(deployment.id, department)
+      }
+
       navigate(`/equipment/${id}`)
     } catch (err) {
       console.error('Failed to edit drop-off:', err)
@@ -145,6 +163,32 @@ export default function DropOffEditForm() {
         <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6, fontStyle: 'italic' }}>
           Event info applies to all trams in this drop-off — not editable here.
         </div>
+      </div>
+
+      {/* Department (editable per-tram on the deployment) */}
+      <div style={{
+        marginBottom: '1rem',
+        padding: 10,
+        background: 'linear-gradient(180deg, rgba(251,191,36,0.08), rgba(251,191,36,0.02))',
+        border: '1px solid rgba(251,191,36,0.35)',
+        borderLeft: '3px solid #fbbf24',
+        borderRadius: 8,
+      }}>
+        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+          🏷️ Department {deployment ? '' : <span style={{ color: 'var(--text3)', textTransform: 'none', fontWeight: 400 }}>(no deployment linked)</span>}
+        </label>
+        <input
+          type="text"
+          value={department}
+          onChange={e => setDepartment(e.target.value)}
+          placeholder="e.g. Staff, Roadrunner Express, ADA"
+          disabled={!deployment}
+          style={{
+            width: '100%', fontSize: 13, padding: '8px 10px', minHeight: 36,
+            background: 'var(--bg)', border: '0.5px solid rgba(251,191,36,0.4)',
+            color: 'var(--text1)', borderRadius: 6,
+          }}
+        />
       </div>
 
       <FormSectionHeader title="Condition Check" />

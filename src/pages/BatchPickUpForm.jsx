@@ -372,7 +372,10 @@ export default function BatchPickUpForm() {
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text1)' }}>{eq?.name || 'Unknown'}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text2)' }}>{eq?.serial_number || ''}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text2)' }}>
+                    {eq?.serial_number || ''}
+                    {dep.department && <span style={{ color: '#fbbf24', fontWeight: 600 }}>{eq?.serial_number ? ' · ' : ''}{dep.department}</span>}
+                  </div>
                 </div>
                 <span style={{ fontSize: 11, color: 'var(--text3)' }}>
                   out since {dep.dropped_off_at ? new Date(dep.dropped_off_at + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}

@@ -56,13 +56,17 @@ function DropOffGroupCard({ group, equipment, navigate }) {
             const eq = equipment[r.equipment_id]
             const conds = r.form_data?.conditions || {}
             const tramDamage = Object.values(conds).filter(c => c?.status === 'damage').length
+            const dept = r.form_data?.department
             return (
               <div
                 key={r.id || r.localId}
                 onClick={(e) => { e.stopPropagation(); eq && navigate(`/equipment/${eq.id}`) }}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', fontSize: 13, borderBottom: '0.5px solid rgba(74,222,128,0.1)' }}
               >
-                <span style={{ color: '#f1f5f9', fontWeight: 500 }}>{eq?.name || 'Unknown'}</span>
+                <span style={{ color: '#f1f5f9', fontWeight: 500 }}>
+                  {eq?.name || 'Unknown'}
+                  {dept && <span style={{ color: '#fbbf24', fontWeight: 500, marginLeft: 6 }}>· {dept}</span>}
+                </span>
                 <span style={{ fontSize: 11, color: tramDamage > 0 ? '#f87171' : '#4ade80' }}>
                   {tramDamage > 0 ? `${tramDamage} damage` : 'All good'}
                 </span>
@@ -323,6 +327,7 @@ export default function RecordsPage() {
                     borderRadius: 999, fontSize: 12, color: '#4ade80', fontWeight: 600,
                   }}>
                     📍 {deployment.event_name}
+                    {deployment.department && <span style={{ color: '#fbbf24', fontWeight: 600 }}> · {deployment.department}</span>}
                     {deployment.event_location && <span style={{ color: '#94a3b8', fontWeight: 400 }}> · {deployment.event_location}</span>}
                   </div>
                 )}
