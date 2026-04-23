@@ -81,7 +81,7 @@ Event container (e.g. a festival, tournament). `(name, start_date)` is unique.
 
 ### deployments table (Session 9)
 One row per (event × tram). Links drop-off ↔ pick-up and tracks "where is this tram right now". `(event_id, equipment_id)` is unique.
-`id`, `event_id`, `equipment_id`, `drop_off_record_id`, `pick_up_record_id`, `dropped_off_at`, `picked_up_at`, `status` (deployed/returned/lost), `created_at`
+`id`, `event_id`, `equipment_id`, `drop_off_record_id`, `pick_up_record_id`, `dropped_off_at`, `picked_up_at`, `status` (deployed/returned/lost), `department` (nullable text, added post-Session-9), `created_at`
 
 ### deployments_active view (Session 9)
 Read-only convenience view: `SELECT * FROM deployments_active` returns only `status='deployed'` rows joined with event name/location/client. Used for master list.
@@ -113,6 +113,20 @@ App is **deployed to production** and in field testing with technicians. All cor
 ## Pending Tasks
 - **QR codes** — print and label fleet once ready (waiting on field testing feedback)
 - **Supabase MCP in VS Code** — OAuth works in CLI but VS Code extension needs a new session to pick up MCP tools. Start a new conversation if MCP tools aren't available.
+
+## Completed (Session 9 follow-ups — April 17+)
+
+### Bug fixes + polish (commits `fbdc929`, `1e001fa`, `a49693e`)
+- ✅ Recently-serviced list on home page now uses a stable secondary sort — when multiple trams share a `service_date`, they tiebreak by tram number ascending. No more random ordering for same-day drop-offs.
+- ✅ Deployed filter now works correctly on the **All records** timeline view (was only wired to Fleet Equipment; records view silently filtered on `status='deployed'` which never matched).
+- ✅ Added `View Fleet Equipment` button on the home page between "Log Pick-Up" and "View all records". Previously the only entry point was tapping a stat card, which pre-applied a status filter.
+
+### Department tagging + drop-off/deployment wiring fix (commit `c8f56fc`)
+- ✅ **Bug fix:** `BatchDropOffForm.handleSave` now calls `findOrCreateEvent` + `createDeployment` after each record save. Pre-fix, new drop-offs created maintenance records but **no event/deployment rows** — meaning master list and Pick-Up could not see them. Only the Phase 2 historical backfill was wired up.
+- ✅ Added nullable `department` column to `deployments` table. Rebuilt `deployments_active` view to expose it. Existing 8 backfilled rows keep NULL until edited.
+- ✅ Drop-off form Step 1 now has a per-tram "Dept" input (shown only for selected trams) plus an amber quick-apply card that fills every selected tram at once. Amber visual language (left border, placeholder, rendered pills) makes the field unmissable.
+- ✅ Department surfaces on: master list pill (`📍 Event · Dept · Location`), pick-up form tram rows, drop-off folder card expanded view, and the DropOffEditForm where it can be edited after the fact.
+- ✅ New sync helpers: `findOrCreateEvent`, `createDeployment`, `updateDeploymentDepartment`, `getDeploymentByDropOffRecord`. All require online — offline drop-offs still save records locally but skip event/deployment creation until sync.
 
 ## Completed (Session 9 — April 16)
 
@@ -191,7 +205,7 @@ Coachella 2026 drop-off shows 8 trams in the DB, but field tech recalls 16 physi
 - `src/lib/supabase.js` – Supabase client
 - `src/lib/auth.jsx` – Auth context + Google OAuth
 - `src/lib/db.js` – Local IndexedDB helpers
-- `src/lib/sync.js` – Sync logic; `sortTrams()`, `getEquipmentByIdentifier()` (fuzzy search), `saveRecord()` (returns updated record with Supabase `id` after sync + `didSync`), `editRecord()`, `voidRecord()`, `voidStatusChange()`, `flushPendingRecords()` (returns sync/fail counts, logs failures to `syncErrors`, stashes last result to localStorage), `getPendingCount()`, `getLastSyncResult()`, `getLocalRecordCount()`, `getAllEvents()`, `getAllDeployments()`, `getActiveDeploymentMap()`, `getActiveEventsWithDeployments()`, `markDeploymentReturned()`, `closeEvent()`, `areAllDeploymentsReturned()`, `getStatusChangesForEquipment()`, `getAllStatusChanges()`
+- `src/lib/sync.js` – Sync logic; `sortTrams()`, `getEquipmentByIdentifier()` (fuzzy search), `saveRecord()` (returns updated record with Supabase `id` after sync + `didSync`), `editRecord()`, `voidRecord()`, `voidStatusChange()`, `flushPendingRecords()` (returns sync/fail counts, logs failures to `syncErrors`, stashes last result to localStorage), `getPendingCount()`, `getLastSyncResult()`, `getLocalRecordCount()`, `getAllEvents()`, `getAllDeployments()`, `getActiveDeploymentMap()`, `getActiveEventsWithDeployments()`, `findOrCreateEvent()`, `createDeployment()`, `updateDeploymentDepartment()`, `getDeploymentByDropOffRecord()`, `markDeploymentReturned()`, `closeEvent()`, `areAllDeploymentsReturned()`, `getStatusChangesForEquipment()`, `getAllStatusChanges()`
 - `src/pages/LoginPage.jsx` – Login screen with Flextram artwork
 - `src/pages/HomePage.jsx` – Dashboard with 3 stat cards (In Service / Out of Service / Pending), sync alert banner with manual retry, sync status strip (device record count + last push), Log Drop-Off + Log Pick-Up buttons, icons on nav buttons
 - `src/pages/RecordsPage.jsx` – Fleet equipment list (with 📍 deployment pill per tram) + all records timeline with color-coded filter tabs (includes "Deployed" filter). Drop-off records grouped into one expandable folder card per event.
