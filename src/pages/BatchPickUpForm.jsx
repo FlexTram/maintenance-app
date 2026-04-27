@@ -574,13 +574,20 @@ export default function BatchPickUpForm() {
           <label style={{ display: 'block', fontSize: 12, color: 'var(--text2)', marginBottom: 4 }}>Customer / site rep signature (optional)</label>
           <input value={customerSig} onChange={e => setCustomerSig(e.target.value)} placeholder="Leave blank if not available" style={{ marginBottom: 10 }} />
 
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 8, marginBottom: '1rem', cursor: 'pointer' }}>
-            <input type="checkbox" checked={markEventComplete} onChange={e => setMarkEventComplete(e.target.checked)} />
-            <span style={{ fontSize: 13, color: 'var(--text1)' }}>
-              Mark event as complete
-              <div style={{ fontSize: 11, color: 'var(--text2)' }}>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 10px', background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 8, marginBottom: '1rem', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={markEventComplete}
+              onChange={e => setMarkEventComplete(e.target.checked)}
+              style={{ width: 16, height: 16, marginTop: 2, flexShrink: 0, accentColor: '#4ade80' }}
+            />
+            <span style={{ display: 'block', minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text1)', lineHeight: 1.3 }}>
+                Mark event as complete
+              </span>
+              <span style={{ display: 'block', fontSize: 11, color: 'var(--text2)', marginTop: 2, lineHeight: 1.35 }}>
                 Only check if no more trams will be picked up from this event.
-              </div>
+              </span>
             </span>
           </label>
 
